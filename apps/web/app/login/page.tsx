@@ -26,7 +26,10 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError("E-mail ou senha inválidos. Confira e tente de novo.");
+      // Mostra a mensagem real do Supabase em vez de sempre dizer "senha
+      // inválida" — um erro genérico esconde causas como chave de API ou
+      // projeto errado por trás do mesmo texto de "senha errada".
+      setError(`${error.message} (${error.status ?? error.name})`);
       setLoading(false);
       return;
     }
