@@ -29,6 +29,27 @@ export default function ClienteCard({ client }: { client: Client }) {
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [startingInspectionId, setStartingInspectionId] = useState<string | null>(null);
+
+  async function startInspection(buildingId: string) {
+    setError(null);
+    setStartingInspectionId(buildingId);
+
+    const res = await fetch("/api/inspections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ buildingId }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      setError(data.error ?? "Falha ao iniciar vistoria.");
+      setStartingInspectionId(null);
+      return;
+    }
+
+    router.push(`/vistorias/${data.inspection.id}`);
+  }
 
   async function confirmDelete() {
     if (!pendingDelete) return;
@@ -125,6 +146,23 @@ export default function ClienteCard({ client }: { client: Client }) {
                 </span>
               </span>
               <span style={{ display: "flex", gap: 10, whiteSpace: "nowrap", fontSize: "0.74rem" }}>
+                <button
+                  type="button"
+                  onClick={() => startInspection(building.id)}
+                  disabled={startingInspectionId === building.id}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    color: "#205e73",
+                    fontWeight: 700,
+                    fontSize: "0.74rem",
+                    cursor: startingInspectionId === building.id ? "default" : "pointer",
+                    opacity: startingInspectionId === building.id ? 0.6 : 1,
+                  }}
+                >
+                  {startingInspectionId === building.id ? "Iniciando…" : "Nova vistoria"}
+                </button>
                 <Link
                   href={`/clientes/${client.id}/edificacoes/${building.id}/editar`}
                   style={{ color: "#6b7176", fontWeight: 700 }}
