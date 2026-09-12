@@ -16,6 +16,7 @@
     "node": ">=20"
   },
   "allowScripts": {
-    "puppeteer@25.10.0": true
+    "puppeteer@25.10.0": true,
+    "unrs-resolver@1.12.2": true
   }
 }
