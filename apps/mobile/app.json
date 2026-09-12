@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "Projeto Laudo",
+    "slug": "projeto-laudo",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#205e73"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "br.com.projetolaudo.app"
+    },
+    "android": {
+      "package": "br.com.projetolaudo.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#205e73"
+      }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O app precisa da câmera para registrar as anomalias durante a vistoria."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O app precisa da câmera para registrar fotos das anomalias durante a vistoria."
+        }
+      ]
+    ]
+  }
+}

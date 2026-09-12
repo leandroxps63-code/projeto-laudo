@@ -1,0 +1,17 @@
+<!--
+  Fonte vetorial do ícone (identidade visual, 12/09). Documento com check —
+  remete a "laudo aprovado/concluído", usando os tokens do Design System
+  (brand #205e73, paper #f8f6f2). Não é consumido pelo Expo diretamente
+  (build usa os PNGs já gerados: icon.png, adaptive-icon.png, splash-icon.png,
+  e apps/web/app/icon.png + apple-icon.png) — serve só pra editar/regerar.
+  Pra regerar os PNGs: abrir este SVG (e a variante sem o <rect> de fundo,
+  pra versão "foreground" transparente do adaptive icon) num navegador e
+  exportar nos tamanhos: 1024×1024 (mobile icon/adaptive/splash), 512×512
+  (apps/web/app/icon.png), 180×180 (apps/web/app/apple-icon.png).
+-->
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" fill="#205e73"/>
+  <path d="M332,172 L632,172 L732,272 L732,732 Q732,772 692,772 L332,772 Q292,772 292,732 L292,212 Q292,172 332,172 Z" fill="#f8f6f2"/>
+  <path d="M632,172 L732,272 L632,272 Z" fill="#d8d3c5"/>
+  <path d="M380,560 L470,650 L680,380" stroke="#205e73" stroke-width="56" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

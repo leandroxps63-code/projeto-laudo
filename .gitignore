@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+
+# expo
+.expo/
+dist/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# build
+build/
+*.tsbuildinfo
+
+# misc
+.DS_Store
+*.log
+npm-debug.log*
