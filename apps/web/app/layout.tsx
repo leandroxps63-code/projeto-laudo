@@ -6,6 +6,16 @@ export const metadata: Metadata = {
   description: "Laudos de inspeção predial — do app de campo ao documento pronto.",
 };
 
+// Toda página do site depende de sessão de usuário e dado ao vivo do banco
+// (dashboard, clientes, vistorias são sempre por usuário logado) — nenhuma
+// deveria ser gerada estática em build de qualquer forma. Também evita um
+// bug real de `next build` (App Router + Client Component usando
+// usePathname/useRouter no layout raiz — aqui, o SiteHeader — quebrava a
+// pré-renderização estática com "Cannot read properties of null (reading
+// 'useContext')", só em produção, nunca em `next dev`). Achado testando o
+// build de verdade depois que o deploy na Vercel falhou.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">

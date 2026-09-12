@@ -10,7 +10,12 @@
     "dev:web": "npm run dev --workspace=web",
     "dev:mobile": "npm run start --workspace=mobile",
     "lint": "npm run lint --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "postinstall": "node scripts/patch-next-cache.js"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "engines": {
     "node": ">=20"

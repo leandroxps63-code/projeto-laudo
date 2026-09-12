@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { logError } from "@/lib/errorLog";
 
+export const dynamic = "force-dynamic";
+
 /**
  * RF-09 — fotos de uma anomalia, no Supabase Storage (bucket privado "anomaly-photos").
  * Caminho de armazenamento: {inspectionId}/{anomalyId}/{uuid}-{nome do arquivo}.

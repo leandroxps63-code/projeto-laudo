@@ -6,6 +6,8 @@ import { buildReportHtml, type ReportAnomalyInput } from "@/lib/reportTemplate";
 import { logError } from "@/lib/errorLog";
 import { SEVERITY_LABELS, type Severity } from "@projeto-laudo/shared";
 
+export const dynamic = "force-dynamic";
+
 /**
  * RF-10/RF-11/RF-14 — laudos gerados a partir de uma vistoria.
  * Uma vistoria pode ter mais de um laudo (reemissão/nova versão sem custo — RF-14).

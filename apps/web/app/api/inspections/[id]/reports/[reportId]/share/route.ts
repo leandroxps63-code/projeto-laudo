@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 
+export const dynamic = "force-dynamic";
+
 /**
  * RF-11 — ativa/desativa o link público de compartilhamento de um laudo.
  * PATCH /api/inspections/:id/reports/:reportId/share

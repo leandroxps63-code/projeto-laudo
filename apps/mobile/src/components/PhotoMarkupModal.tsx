@@ -9,8 +9,18 @@ import {
   PanResponder,
   Dimensions,
 } from "react-native";
-import Svg, { Polyline } from "react-native-svg";
+import SvgOriginal, { Polyline as PolylineOriginal } from "react-native-svg";
 import ViewShot from "react-native-view-shot";
+
+// react-native-svg 15.x ainda tipa os componentes como class component
+// legado (2 generics), incompatível com o `Component<P, S, SS>` (3
+// generics) do @types/react 19.x usado pelo app — funciona perfeitamente
+// em runtime (testado em dispositivo real), é só o typecheck que não
+// reconhece. Cast local em vez de mexer no pacote de terceiros.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Svg = SvgOriginal as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Polyline = PolylineOriginal as any;
 
 type Point = { x: number; y: number };
 type Stroke = Point[];

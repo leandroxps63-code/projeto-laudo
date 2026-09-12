@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 
+export const dynamic = "force-dynamic";
+
 /**
  * RF-02/RF-07/RF-09 — anomalias de uma vistoria específica.
  *

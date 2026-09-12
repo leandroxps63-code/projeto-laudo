@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase-server";
  *   (evita apagar em cascata edificações/vistorias/laudos sem aviso)
  */
 
+export const dynamic = "force-dynamic";
+
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
   const {

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Clientes (contratantes do laudo — construtora, condomínio, pessoa física).
  * GET  /api/clients   -> lista os clientes criados pelo usuário logado

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 
+export const dynamic = "force-dynamic";
+
 /**
  * RF-07 — banco de anomalias e tratamentos. Biblioteca compartilhada
  * (não é por vistoria), usada para sugerir classificação e tratamento

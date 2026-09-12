@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Edificações vinculadas a um cliente.
  * GET  /api/buildings?clientId=...  -> lista edificações de um cliente
