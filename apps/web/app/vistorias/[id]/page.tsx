@@ -56,6 +56,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<CatalogEntry[]>([]);
   const [selected, setSelected] = useState<CatalogEntry | null>(null);
+  const [treatment, setTreatment] = useState("");
   const [severity, setSeverity] = useState<Severity>("media");
   const [photo, setPhoto] = useState<File | null>(null);
   const [rawPhoto, setRawPhoto] = useState<File | null>(null);
@@ -109,12 +110,15 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
     setSelected(entry);
     setQuery(entry.description);
     setSeverity(entry.default_severity);
+    setTreatment(entry.treatment_recommendation);
     setSuggestions([]);
   }
 
   async function handleAddAnomaly() {
-    if (!environment || !systemType || !query) {
-      setError("Preencha ambiente, sistema construtivo e a descrição/categoria da anomalia.");
+    if (!environment || !systemType || !query || !treatment) {
+      setError(
+        "Preencha ambiente, sistema construtivo, a descrição da anomalia e o tratamento recomendado."
+      );
       return;
     }
     setSaving(true);
@@ -127,7 +131,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
         environment,
         systemType,
         description: selected?.description ?? query,
-        treatmentRecommendation: selected?.treatment_recommendation,
+        treatmentRecommendation: treatment,
         severity,
         catalogId: selected?.id,
       }),
@@ -157,6 +161,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
     setSystemType("");
     setQuery("");
     setSelected(null);
+    setTreatment("");
     setSeverity("media");
     setPhoto(null);
     setRawPhoto(null);
@@ -303,20 +308,19 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
             )}
           </div>
 
-          {selected && (
-            <div
-              style={{
-                background: "#e4eff1",
-                border: "1px solid #205e73",
-                borderRadius: 8,
-                padding: 10,
-                fontSize: 12.5,
-                color: "#143f4d",
-              }}
-            >
-              Tratamento sugerido: {selected.treatment_recommendation}
-            </div>
-          )}
+          <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7176" }}>
+              Tratamento recomendado
+              {selected ? " (sugerido pelo banco de anomalias — pode ajustar)" : ""}
+            </span>
+            <textarea
+              value={treatment}
+              onChange={(e) => setTreatment(e.target.value)}
+              placeholder="Ex: Selagem com massa elástica após monitoramento de abertura por 60 dias."
+              rows={2}
+              style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+            />
+          </label>
 
           <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7176" }}>
