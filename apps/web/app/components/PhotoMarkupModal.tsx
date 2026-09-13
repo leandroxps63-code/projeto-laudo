@@ -11,8 +11,14 @@ type Props = {
   onClose: () => void;
 };
 
-const MAX_WIDTH = 560;
-const MAX_HEIGHT = 480;
+// Tamanho da tela de desenho (ergonomia do mouse) — não é a resolução final
+// salva. A exportação usa uma resolução maior (EXPORT_MAX_*) pra não gerar
+// fotos borradas no laudo em PDF, redesenhando a imagem original + os
+// traços (escalados) num canvas separado, maior, só na hora de confirmar.
+const DISPLAY_MAX_WIDTH = 560;
+const DISPLAY_MAX_HEIGHT = 480;
+const EXPORT_MAX_WIDTH = 1600;
+const EXPORT_MAX_HEIGHT = 1600;
 
 /**
  * Marcação/anotação na foto — versão web do que já existe no app mobile
@@ -32,7 +38,7 @@ export default function PhotoMarkupModal({ file, onConfirm, onClose }: Props) {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      const scale = Math.min(MAX_WIDTH / img.width, MAX_HEIGHT / img.height, 1);
+      const scale = Math.min(DISPLAY_MAX_WIDTH / img.width, DISPLAY_MAX_HEIGHT / img.height, 1);
       imageRef.current = img;
       setSize({ width: Math.round(img.width * scale), height: Math.round(img.height * scale) });
       setStrokes([]);
@@ -96,19 +102,54 @@ export default function PhotoMarkupModal({ file, onConfirm, onClose }: Props) {
     setStrokes((prev) => prev.slice(0, -1));
   }
 
-  function handleSkip() {
-    onConfirm(currentFile);
-    onClose();
-  }
-
-  function handleConfirm() {
-    const canvas = canvasRef.current;
-    if (!canvas || strokes.length === 0) {
+  // Sempre exporta (com ou sem marcação) num canvas à parte, numa resolução
+  // maior que a tela de desenho — isso resolve dois problemas de uma vez:
+  // 1) redimensiona/recomprime a foto pra caber no limite de payload de
+  //    4.5 MB das funções serverless da Vercel (fotos de celular moderno
+  //    passam fácil de 8-10 MB cruas); 2) evita salvar a foto do laudo na
+  //    resolução pequena da tela de desenho (560x480), que ficaria borrada
+  //    impressa no PDF. Os traços são redesenhados escalados pela razão
+  //    entre a resolução de exportação e a de tela. Achado revisando o
+  //    fluxo de upload de foto — o teste manual desta sessão usou um ícone
+  //    de poucos KB, que não expõe nem o limite de tamanho nem a perda de
+  //    qualidade.
+  function exportCanvas() {
+    const displayCanvas = canvasRef.current;
+    const img = imageRef.current;
+    if (!displayCanvas || !img || !size) {
       onConfirm(currentFile);
       onClose();
       return;
     }
-    canvas.toBlob(
+
+    const exportScale = Math.min(EXPORT_MAX_WIDTH / img.width, EXPORT_MAX_HEIGHT / img.height, 1);
+    const exportWidth = Math.round(img.width * exportScale);
+    const exportHeight = Math.round(img.height * exportScale);
+    const strokeScale = exportWidth / size.width;
+
+    const exportCanvasEl = document.createElement("canvas");
+    exportCanvasEl.width = exportWidth;
+    exportCanvasEl.height = exportHeight;
+    const ctx = exportCanvasEl.getContext("2d");
+    if (!ctx) {
+      onConfirm(currentFile);
+      onClose();
+      return;
+    }
+    ctx.drawImage(img, 0, 0, exportWidth, exportHeight);
+    ctx.strokeStyle = "#e11d1d";
+    ctx.lineWidth = 4 * strokeScale;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (const stroke of strokes) {
+      if (stroke.length < 2) continue;
+      ctx.beginPath();
+      ctx.moveTo(stroke[0].x * strokeScale, stroke[0].y * strokeScale);
+      for (const p of stroke.slice(1)) ctx.lineTo(p.x * strokeScale, p.y * strokeScale);
+      ctx.stroke();
+    }
+
+    exportCanvasEl.toBlob(
       (blob) => {
         if (!blob) {
           onConfirm(currentFile);
@@ -120,6 +161,14 @@ export default function PhotoMarkupModal({ file, onConfirm, onClose }: Props) {
       "image/jpeg",
       0.85
     );
+  }
+
+  function handleSkip() {
+    exportCanvas();
+  }
+
+  function handleConfirm() {
+    exportCanvas();
   }
 
   return (
