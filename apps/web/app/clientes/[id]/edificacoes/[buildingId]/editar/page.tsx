@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { fetchAuthed } from "@/lib/fetchAuthed";
 
 /** Editar edificação existente. */
 export default function EditarEdificacaoPage({
@@ -16,7 +17,7 @@ export default function EditarEdificacaoPage({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/buildings/${params.buildingId}`)
+    fetchAuthed(`/api/buildings/${params.buildingId}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.building) {
@@ -42,7 +43,7 @@ export default function EditarEdificacaoPage({
     setError(null);
 
     try {
-      const res = await fetch(`/api/buildings/${params.buildingId}`, {
+      const res = await fetchAuthed(`/api/buildings/${params.buildingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

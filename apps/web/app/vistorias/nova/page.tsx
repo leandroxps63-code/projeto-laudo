@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { fetchAuthed } from "@/lib/fetchAuthed";
 
 /**
  * Nova vistoria — cria cliente + edificação + vistoria numa tacada só.
@@ -28,7 +29,7 @@ export default function NovaVistoriaPage() {
     setError(null);
 
     try {
-      const clientRes = await fetch("/api/clients", {
+      const clientRes = await fetchAuthed("/api/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: form.clientName }),
@@ -36,7 +37,7 @@ export default function NovaVistoriaPage() {
       const clientData = await clientRes.json();
       if (!clientRes.ok) throw new Error(clientData.error ?? "Falha ao criar cliente.");
 
-      const buildingRes = await fetch("/api/buildings", {
+      const buildingRes = await fetchAuthed("/api/buildings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -49,7 +50,7 @@ export default function NovaVistoriaPage() {
       const buildingData = await buildingRes.json();
       if (!buildingRes.ok) throw new Error(buildingData.error ?? "Falha ao criar edificação.");
 
-      const inspectionRes = await fetch("/api/inspections", {
+      const inspectionRes = await fetchAuthed("/api/inspections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ buildingId: buildingData.building.id }),

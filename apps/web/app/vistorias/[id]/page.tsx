@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { SEVERITY_LABELS, type Severity } from "@projeto-laudo/shared";
 import PhotoMarkupModal from "../../components/PhotoMarkupModal";
+import { fetchAuthed } from "@/lib/fetchAuthed";
 
 type CatalogEntry = {
   id: string;
@@ -74,7 +75,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
 
   const loadAnomalies = useCallback(async () => {
     setLoadingList(true);
-    const res = await fetch(`/api/inspections/${params.id}/anomalies`);
+    const res = await fetchAuthed(`/api/inspections/${params.id}/anomalies`);
     const data = await res.json();
     if (res.ok) setAnomalies(data.anomalies);
     setLoadingList(false);
@@ -82,7 +83,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
 
   const loadReports = useCallback(async () => {
     setLoadingReports(true);
-    const res = await fetch(`/api/inspections/${params.id}/reports`);
+    const res = await fetchAuthed(`/api/inspections/${params.id}/reports`);
     const data = await res.json();
     if (res.ok) setReports(data.reports);
     setLoadingReports(false);
@@ -99,7 +100,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
       return;
     }
     const timeout = setTimeout(async () => {
-      const res = await fetch(`/api/anomaly-catalog?q=${encodeURIComponent(query)}`);
+      const res = await fetchAuthed(`/api/anomaly-catalog?q=${encodeURIComponent(query)}`);
       const data = await res.json();
       if (res.ok) setSuggestions(data.catalog);
     }, 250);
@@ -124,7 +125,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
     setSaving(true);
     setError(null);
 
-    const res = await fetch(`/api/inspections/${params.id}/anomalies`, {
+    const res = await fetchAuthed(`/api/inspections/${params.id}/anomalies`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -147,7 +148,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
     if (photo) {
       const photoForm = new FormData();
       photoForm.append("file", photo);
-      const photoRes = await fetch(
+      const photoRes = await fetchAuthed(
         `/api/inspections/${params.id}/anomalies/${data.anomaly.id}/photos`,
         { method: "POST", body: photoForm }
       );
@@ -173,7 +174,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
   async function handleGenerateReport() {
     setGeneratingReport(true);
     setReportMessage("Gerando…");
-    const res = await fetch(`/api/inspections/${params.id}/reports`, { method: "POST" });
+    const res = await fetchAuthed(`/api/inspections/${params.id}/reports`, { method: "POST" });
     const data = await res.json();
     if (res.ok) {
       setReportMessage(data.note ?? null);
@@ -186,7 +187,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
 
   async function handleToggleShare(report: Report) {
     setTogglingShareId(report.id);
-    const res = await fetch(`/api/inspections/${params.id}/reports/${report.id}/share`, {
+    const res = await fetchAuthed(`/api/inspections/${params.id}/reports/${report.id}/share`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ enabled: !report.share_enabled }),

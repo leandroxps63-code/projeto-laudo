@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { fetchAuthed } from "@/lib/fetchAuthed";
 
 /** Editar cliente existente. */
 export default function EditarClientePage({ params }: { params: { id: string } }) {
@@ -12,7 +13,7 @@ export default function EditarClientePage({ params }: { params: { id: string } }
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/clients/${params.id}`)
+    fetchAuthed(`/api/clients/${params.id}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.client) {
@@ -38,7 +39,7 @@ export default function EditarClientePage({ params }: { params: { id: string } }
     setError(null);
 
     try {
-      const res = await fetch(`/api/clients/${params.id}`, {
+      const res = await fetchAuthed(`/api/clients/${params.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

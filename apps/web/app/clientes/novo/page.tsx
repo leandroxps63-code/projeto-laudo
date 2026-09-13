@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { fetchAuthed } from "@/lib/fetchAuthed";
 
 /** Novo cliente — cadastro avulso, fora do fluxo "Nova vistoria". */
 export default function NovoClientePage() {
@@ -20,7 +21,7 @@ export default function NovoClientePage() {
     setError(null);
 
     try {
-      const res = await fetch("/api/clients", {
+      const res = await fetchAuthed("/api/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

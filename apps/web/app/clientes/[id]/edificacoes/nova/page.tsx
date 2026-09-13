@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { fetchAuthed } from "@/lib/fetchAuthed";
 
 /** Nova edificação vinculada a um cliente já existente. */
 export default function NovaEdificacaoPage({ params }: { params: { id: string } }) {
@@ -20,7 +21,7 @@ export default function NovaEdificacaoPage({ params }: { params: { id: string } 
     setError(null);
 
     try {
-      const res = await fetch("/api/buildings", {
+      const res = await fetchAuthed("/api/buildings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

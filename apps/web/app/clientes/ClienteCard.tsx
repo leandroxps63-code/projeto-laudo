@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { fetchAuthed } from "@/lib/fetchAuthed";
 
 type Building = {
   id: string;
@@ -35,7 +36,7 @@ export default function ClienteCard({ client }: { client: Client }) {
     setError(null);
     setStartingInspectionId(buildingId);
 
-    const res = await fetch("/api/inspections", {
+    const res = await fetchAuthed("/api/inspections", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ buildingId }),
@@ -58,7 +59,7 @@ export default function ClienteCard({ client }: { client: Client }) {
 
     const url =
       pendingDelete.kind === "client" ? `/api/clients/${pendingDelete.id}` : `/api/buildings/${pendingDelete.id}`;
-    const res = await fetch(url, { method: "DELETE" });
+    const res = await fetchAuthed(url, { method: "DELETE" });
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
