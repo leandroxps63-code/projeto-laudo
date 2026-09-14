@@ -70,7 +70,11 @@ export default function PrivacidadePage() {
       </Section>
 
       <Section title="Contato">
-        <p>[e-mail de suporte a definir]</p>
+        <p>
+          <a href="mailto:leandroxps63@gmail.com" style={{ color: "#205e73", fontWeight: 700 }}>
+            leandroxps63@gmail.com
+          </a>
+        </p>
       </Section>
     </main>
   );
