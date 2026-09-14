@@ -33,6 +33,7 @@ export default function SelecionarClienteScreen({ navigation }: Props) {
   const [query, setQuery] = useState("");
   const [startingBuildingId, setStartingBuildingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,7 +41,15 @@ export default function SelecionarClienteScreen({ navigation }: Props) {
       .from("clients")
       .select("id, name, buildings(id, name, address, floors)")
       .order("created_at", { ascending: false });
-    if (!error && data) setClients(data as unknown as ClientRow[]);
+    if (!error && data) {
+      setClients(data as unknown as ClientRow[]);
+      setLoadFailed(false);
+    } else if (error) {
+      // Igual ao Dashboard: uma falha de carregamento não pode parecer
+      // "nenhum cliente cadastrado" — isso empurra a pessoa pro "+ Cliente
+      // novo" e duplica cliente/edificação que já existe.
+      setLoadFailed(true);
+    }
     setLoading(false);
   }, []);
 
@@ -106,6 +115,15 @@ export default function SelecionarClienteScreen({ navigation }: Props) {
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 24 }} />
+      ) : loadFailed ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText}>
+            Não deu pra carregar seus clientes agora (sem conexão?). Toque para tentar de novo.
+          </Text>
+          <TouchableOpacity onPress={load}>
+            <Text style={styles.errorBannerRetry}>Tentar agora</Text>
+          </TouchableOpacity>
+        </View>
       ) : filtered.length === 0 ? (
         <Text style={styles.empty}>
           {clients.length === 0
@@ -169,6 +187,17 @@ const styles = StyleSheet.create({
   },
   error: { color: "#c0392b", fontSize: 13, marginBottom: 10 },
   empty: { color: "#6b7176", marginTop: 8 },
+  errorBanner: {
+    backgroundColor: "#f8ecdb",
+    borderWidth: 1,
+    borderColor: "#e0b876",
+    borderRadius: 9,
+    padding: 12,
+    marginTop: 8,
+    gap: 8,
+  },
+  errorBannerText: { fontSize: 12.5, color: "#8a5a1c" },
+  errorBannerRetry: { fontSize: 12.5, fontWeight: "700", color: "#205e73" },
   clientCard: {
     backgroundColor: "#fff",
     borderWidth: 1,

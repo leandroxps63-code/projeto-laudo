@@ -27,13 +27,24 @@ export default function DashboardScreen({ navigation }: Props) {
   const [inspections, setInspections] = useState<InspectionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from("inspections")
       .select("id, status, buildings(name, address)")
       .order("created_at", { ascending: false });
-    if (!error && data) setInspections(data as InspectionRow[]);
+    if (!error && data) {
+      setInspections(data as InspectionRow[]);
+      setLoadFailed(false);
+    } else if (error) {
+      // Não deixar a lista de vistorias somem da tela por uma falha de
+      // carregamento — isso pareceria "perdi meus dados" e, pior, pode levar
+      // a pessoa a tocar em "+ Nova vistoria" e duplicar cliente/edificação
+      // que já existe (o mesmo problema que a SelecionarClienteScreen existe
+      // pra evitar).
+      setLoadFailed(true);
+    }
     setLoading(false);
     setRefreshing(false);
   }, []);
@@ -58,6 +69,15 @@ export default function DashboardScreen({ navigation }: Props) {
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 24 }} />
+      ) : loadFailed ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText}>
+            Não deu pra carregar suas vistorias agora (sem conexão?). Toque para tentar de novo.
+          </Text>
+          <TouchableOpacity onPress={load}>
+            <Text style={styles.errorBannerRetry}>Tentar agora</Text>
+          </TouchableOpacity>
+        </View>
       ) : inspections.length === 0 ? (
         <Text style={styles.empty}>Nenhuma vistoria ainda. Toque em "+ Nova vistoria" para começar.</Text>
       ) : (
@@ -98,6 +118,17 @@ const styles = StyleSheet.create({
   primaryButton: { backgroundColor: "#205e73", borderRadius: 9, paddingVertical: 10, paddingHorizontal: 16 },
   primaryButtonText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   empty: { color: "#6b7176", marginTop: 8 },
+  errorBanner: {
+    backgroundColor: "#f8ecdb",
+    borderWidth: 1,
+    borderColor: "#e0b876",
+    borderRadius: 9,
+    padding: 12,
+    marginTop: 8,
+    gap: 8,
+  },
+  errorBannerText: { fontSize: 12.5, color: "#8a5a1c" },
+  errorBannerRetry: { fontSize: 12.5, fontWeight: "700", color: "#205e73" },
   card: {
     backgroundColor: "#fff",
     borderWidth: 1,
