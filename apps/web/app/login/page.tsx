@@ -3,6 +3,16 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
+import {
+  colors,
+  fontMono,
+  labelStyle,
+  inputStyle,
+  primaryButtonStyle,
+  cardStyle,
+  errorTextStyle,
+  headingStyle,
+} from "@/lib/theme";
 
 /**
  * Login real via Supabase Auth (e-mail + senha).
@@ -39,92 +49,110 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ maxWidth: 360, margin: "80px auto", padding: "0 20px" }}>
-      <h1 style={{ fontSize: "1.25rem", fontWeight: 800, marginBottom: 24 }}>
-        Projeto Laudo
-      </h1>
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7176" }}>E-mail</span>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{ padding: 11, borderRadius: 9, border: "1.3px solid #c9c3b4" }}
-          />
-        </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7176" }}>Senha</span>
-          <div style={{ position: "relative", display: "flex" }}>
-            <input
-              type={showPassword ? "text" : "password"}
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{
-                padding: 11,
-                paddingRight: 60,
-                borderRadius: 9,
-                border: "1.3px solid #c9c3b4",
-                width: "100%",
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? "Esconder senha" : "Mostrar senha"}
-              style={{
-                position: "absolute",
-                right: 6,
-                top: "50%",
-                transform: "translateY(-50%)",
-                border: "none",
-                background: "transparent",
-                color: "#205e73",
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-                padding: "4px 6px",
-              }}
-            >
-              {showPassword ? "Ocultar" : "Mostrar"}
-            </button>
-          </div>
-        </label>
-        {error && (
-          <p role="alert" style={{ color: "#c0392b", fontSize: 13 }}>
-            {error}
-          </p>
-        )}
-        <button
-          type="submit"
-          disabled={loading}
+    <main
+      style={{
+        minHeight: "calc(100vh - 65px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "40px 20px",
+      }}
+    >
+      <div style={{ width: "100%", maxWidth: 380 }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <span
+            style={{
+              fontFamily: fontMono,
+              fontSize: "0.72rem",
+              fontWeight: 500,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: colors.azul,
+            }}
+          >
+            NBR 16.747 · Inspeção Predial
+          </span>
+          <h1 style={{ ...headingStyle, fontSize: "1.5rem", marginTop: 8 }}>Entrar</h1>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
           style={{
-            padding: 13,
-            borderRadius: 10,
-            border: "none",
-            background: "#205e73",
-            color: "#fff",
-            fontWeight: 700,
-            cursor: loading ? "default" : "pointer",
-            opacity: loading ? 0.7 : 1,
+            ...cardStyle,
+            padding: 24,
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
           }}
         >
-          {loading ? "Entrando…" : "Entrar"}
-        </button>
-      </form>
-      <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "#6b7176" }}>
-        Não tem conta?{" "}
-        <a href="/cadastro" style={{ color: "#205e73", fontWeight: 700 }}>
-          Cadastre-se
-        </a>
-      </p>
-      <p style={{ textAlign: "center", marginTop: 10 }}>
-        <a href="/privacidade" style={{ fontSize: 12, color: "#9a9d93" }}>
-          Política de privacidade
-        </a>
-      </p>
+          <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <span style={labelStyle}>E-mail</span>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={inputStyle}
+            />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <span style={labelStyle}>Senha</span>
+            <div style={{ position: "relative", display: "flex" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{ ...inputStyle, paddingRight: 60, width: "100%" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Esconder senha" : "Mostrar senha"}
+                style={{
+                  position: "absolute",
+                  right: 6,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "transparent",
+                  color: colors.azul,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  padding: "4px 6px",
+                }}
+              >
+                {showPassword ? "Ocultar" : "Mostrar"}
+              </button>
+            </div>
+          </label>
+          {error && (
+            <p role="alert" style={errorTextStyle}>
+              {error}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            style={{ ...primaryButtonStyle, opacity: loading ? 0.7 : 1, cursor: loading ? "default" : "pointer" }}
+          >
+            {loading ? "Entrando…" : "Entrar"}
+          </button>
+        </form>
+
+        <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: colors.tintaMuted }}>
+          Não tem conta?{" "}
+          <a href="/cadastro" style={{ color: colors.azul, fontWeight: 700 }}>
+            Cadastre-se
+          </a>
+        </p>
+        <p style={{ textAlign: "center", marginTop: 10 }}>
+          <a href="/privacidade" style={{ fontSize: 12, color: colors.tintaFaint }}>
+            Política de privacidade
+          </a>
+        </p>
+      </div>
     </main>
   );
 }

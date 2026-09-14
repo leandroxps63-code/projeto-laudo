@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
+import { colors, fontDisplay, fontBody } from "@/lib/theme";
 
 const PUBLIC_PATHS = [
   "/login",
@@ -36,23 +38,42 @@ export default function SiteHeader() {
     <header
       style={{
         display: "flex",
-        justifyContent: "flex-end",
+        justifyContent: "space-between",
         alignItems: "center",
-        padding: "12px 20px",
-        borderBottom: "1px solid #e1ddd2",
-        background: "#f8f6f2",
+        padding: "14px 20px",
+        borderBottom: `1px solid ${colors.pedra}`,
+        background: "rgba(245, 241, 233, 0.92)",
+        backdropFilter: "blur(6px)",
+        position: "sticky",
+        top: 0,
+        zIndex: 20,
       }}
     >
+      <Link
+        href="/painel"
+        style={{
+          fontFamily: fontDisplay,
+          fontWeight: 800,
+          fontSize: "1.02rem",
+          letterSpacing: "-0.01em",
+          color: colors.tinta,
+          textDecoration: "none",
+        }}
+      >
+        Projeto Laudo
+      </Link>
       <button
         onClick={handleLogout}
         style={{
           background: "none",
-          border: "none",
-          color: "#c0392b",
+          border: `1.3px solid ${colors.pedra}`,
+          borderRadius: 8,
+          padding: "7px 14px",
+          color: colors.erro,
           fontWeight: 700,
+          fontFamily: fontBody,
           fontSize: 13,
           cursor: "pointer",
-          padding: 0,
         }}
       >
         Sair

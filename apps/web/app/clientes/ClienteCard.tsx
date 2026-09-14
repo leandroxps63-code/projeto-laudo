@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { fetchAuthed, SESSION_EXPIRED_MESSAGE } from "@/lib/fetchAuthed";
+import { colors, cardStyle, errorTextStyle } from "@/lib/theme";
 
 type Building = {
   id: string;
@@ -75,7 +76,7 @@ export default function ClienteCard({ client }: { client: Client }) {
   }
 
   return (
-    <li style={{ border: "1px solid #e1ddd2", borderRadius: 11, padding: "14px 16px" }}>
+    <li style={{ ...cardStyle, padding: "14px 16px" }}>
       <div
         style={{
           display: "flex",
@@ -86,18 +87,18 @@ export default function ClienteCard({ client }: { client: Client }) {
         }}
       >
         <div>
-          <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{client.name}</div>
+          <div style={{ fontWeight: 700, fontSize: "0.95rem", color: colors.tinta }}>{client.name}</div>
           {(client.email || client.phone) && (
-            <div style={{ fontSize: "0.78rem", color: "#6b7176" }}>
+            <div style={{ fontSize: "0.78rem", color: colors.tintaMuted }}>
               {[client.email, client.phone].filter(Boolean).join(" · ")}
             </div>
           )}
         </div>
         <div style={{ display: "flex", gap: 10, whiteSpace: "nowrap", fontSize: "0.78rem" }}>
-          <Link href={`/clientes/${client.id}/edificacoes/nova`} style={{ color: "#205e73", fontWeight: 700 }}>
+          <Link href={`/clientes/${client.id}/edificacoes/nova`} style={{ color: colors.azul, fontWeight: 700 }}>
             + Edificação
           </Link>
-          <Link href={`/clientes/${client.id}/editar`} style={{ color: "#6b7176", fontWeight: 700 }}>
+          <Link href={`/clientes/${client.id}/editar`} style={{ color: colors.tintaMuted, fontWeight: 700 }}>
             Editar
           </Link>
           <button
@@ -107,7 +108,7 @@ export default function ClienteCard({ client }: { client: Client }) {
               background: "none",
               border: "none",
               padding: 0,
-              color: "#c0392b",
+              color: colors.erro,
               fontWeight: 700,
               fontSize: "0.78rem",
               cursor: "pointer",
@@ -118,17 +119,17 @@ export default function ClienteCard({ client }: { client: Client }) {
         </div>
       </div>
 
-      {error && <p style={{ color: "#c0392b", fontSize: 12, marginBottom: 8 }}>{error}</p>}
+      {error && <p style={{ ...errorTextStyle, fontSize: 12, marginBottom: 8 }}>{error}</p>}
 
       {client.buildings.length === 0 ? (
-        <p style={{ fontSize: "0.78rem", color: "#9a9d93", margin: 0 }}>Nenhuma edificação cadastrada.</p>
+        <p style={{ fontSize: "0.78rem", color: colors.tintaFaint, margin: 0 }}>Nenhuma edificação cadastrada.</p>
       ) : (
         <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
           {client.buildings.map((building) => (
             <li
               key={building.id}
               style={{
-                background: "#faf8f3",
+                background: colors.concreto,
                 borderRadius: 8,
                 padding: "8px 10px",
                 fontSize: "0.82rem",
@@ -139,8 +140,8 @@ export default function ClienteCard({ client }: { client: Client }) {
               }}
             >
               <span>
-                <span style={{ fontWeight: 600 }}>{building.name}</span>
-                <span style={{ color: "#6b7176" }}>
+                <span style={{ fontWeight: 600, color: colors.tinta }}>{building.name}</span>
+                <span style={{ color: colors.tintaMuted }}>
                   {" "}
                   — {building.address}
                   {building.floors ? ` · ${building.floors} pavimentos` : ""}
@@ -155,7 +156,7 @@ export default function ClienteCard({ client }: { client: Client }) {
                     background: "none",
                     border: "none",
                     padding: 0,
-                    color: "#205e73",
+                    color: colors.azul,
                     fontWeight: 700,
                     fontSize: "0.74rem",
                     cursor: startingInspectionId === building.id ? "default" : "pointer",
@@ -166,7 +167,7 @@ export default function ClienteCard({ client }: { client: Client }) {
                 </button>
                 <Link
                   href={`/clientes/${client.id}/edificacoes/${building.id}/editar`}
-                  style={{ color: "#6b7176", fontWeight: 700 }}
+                  style={{ color: colors.tintaMuted, fontWeight: 700 }}
                 >
                   Editar
                 </Link>
@@ -177,7 +178,7 @@ export default function ClienteCard({ client }: { client: Client }) {
                     background: "none",
                     border: "none",
                     padding: 0,
-                    color: "#c0392b",
+                    color: colors.erro,
                     fontWeight: 700,
                     fontSize: "0.74rem",
                     cursor: "pointer",
@@ -207,18 +208,18 @@ export default function ClienteCard({ client }: { client: Client }) {
         >
           <div
             style={{
-              background: "#fff",
+              background: colors.superficie,
               borderRadius: 12,
               padding: 22,
               maxWidth: 360,
               width: "90%",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+              boxShadow: "0 10px 30px rgba(20,31,34,0.18)",
             }}
           >
-            <p style={{ fontSize: "0.9rem", fontWeight: 700, marginBottom: 6 }}>
+            <p style={{ fontSize: "0.9rem", fontWeight: 700, marginBottom: 6, color: colors.tinta }}>
               Excluir {pendingDelete.kind === "client" ? "cliente" : "edificação"}?
             </p>
-            <p style={{ fontSize: "0.82rem", color: "#6b7176", marginBottom: 18 }}>
+            <p style={{ fontSize: "0.82rem", color: colors.tintaMuted, marginBottom: 18 }}>
               Tem certeza que quer excluir <strong>{pendingDelete.label}</strong>? Essa ação não pode ser desfeita.
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
@@ -229,10 +230,11 @@ export default function ClienteCard({ client }: { client: Client }) {
                 style={{
                   padding: "9px 16px",
                   borderRadius: 9,
-                  border: "1.3px solid #c9c3b4",
-                  background: "#fff",
+                  border: `1.3px solid ${colors.pedra}`,
+                  background: colors.superficie,
                   fontWeight: 700,
                   fontSize: "0.82rem",
+                  color: colors.tinta,
                   cursor: deleting ? "default" : "pointer",
                 }}
               >
@@ -246,7 +248,7 @@ export default function ClienteCard({ client }: { client: Client }) {
                   padding: "9px 16px",
                   borderRadius: 9,
                   border: "none",
-                  background: "#c0392b",
+                  background: colors.erro,
                   color: "#fff",
                   fontWeight: 700,
                   fontSize: "0.82rem",

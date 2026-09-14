@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@projeto-laudo/shared";
+import { colors, fontMono, headingStyle, cardStyle } from "@/lib/theme";
 
 const REPORTS_BUCKET = "reports";
 
@@ -36,8 +37,8 @@ export default async function LaudoCompartilhadoPage({ params }: { params: { tok
   if (!report) {
     return (
       <main style={{ maxWidth: 420, margin: "80px auto", padding: "0 20px", textAlign: "center" }}>
-        <h1 style={{ fontSize: "1.1rem", fontWeight: 800, marginBottom: 8 }}>Link indisponível</h1>
-        <p style={{ color: "#6b7176", fontSize: "0.9rem" }}>
+        <h1 style={{ ...headingStyle, fontSize: "1.1rem", marginBottom: 8 }}>Link indisponível</h1>
+        <p style={{ color: colors.tintaMuted, fontSize: "0.9rem" }}>
           Esse link de laudo é inválido, expirou ou foi desativado por quem o compartilhou.
         </p>
       </main>
@@ -62,13 +63,25 @@ export default async function LaudoCompartilhadoPage({ params }: { params: { tok
 
   return (
     <main style={{ maxWidth: 480, margin: "64px auto", padding: "0 20px" }}>
-      <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "#205e73", marginBottom: 6 }}>
-        LAUDO DE INSPEÇÃO PREDIAL
+      <p
+        style={{
+          fontFamily: fontMono,
+          fontSize: "0.72rem",
+          fontWeight: 500,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: colors.azul,
+          marginBottom: 6,
+        }}
+      >
+        Laudo de inspeção predial
       </p>
-      <h1 style={{ fontSize: "1.3rem", fontWeight: 800, marginBottom: 4 }}>{report.building_name}</h1>
-      <p style={{ color: "#6b7176", fontSize: "0.85rem", marginBottom: 20 }}>{report.building_address}</p>
+      <h1 style={{ ...headingStyle, fontSize: "1.3rem", marginBottom: 4 }}>{report.building_name}</h1>
+      <p style={{ color: colors.tintaMuted, fontSize: "0.85rem", marginBottom: 20 }}>
+        {report.building_address}
+      </p>
 
-      <div style={{ border: "1px solid #e1ddd2", borderRadius: 11, padding: 18 }}>
+      <div style={{ ...cardStyle, padding: 18 }}>
         <Row label="Nº do laudo" value={report.report_number} />
         <Row label="Versão" value={String(report.version)} />
         <Row label="Status" value={STATUS_LABELS[report.status] ?? report.status} />
@@ -90,8 +103,8 @@ export default async function LaudoCompartilhadoPage({ params }: { params: { tok
             marginTop: 20,
             padding: 13,
             borderRadius: 10,
-            background: "#205e73",
-            color: "#fff",
+            background: colors.ambar,
+            color: colors.azulEscuro,
             fontWeight: 700,
             textDecoration: "none",
           }}
@@ -99,7 +112,7 @@ export default async function LaudoCompartilhadoPage({ params }: { params: { tok
           Baixar laudo (PDF)
         </a>
       ) : (
-        <p style={{ color: "#9a9d93", fontSize: "0.82rem", marginTop: 16 }}>
+        <p style={{ color: colors.tintaFaint, fontSize: "0.82rem", marginTop: 16 }}>
           PDF ainda não disponível para este laudo.
         </p>
       )}
@@ -115,8 +128,8 @@ export default async function LaudoCompartilhadoPage({ params }: { params: { tok
             marginTop: 10,
             padding: 13,
             borderRadius: 10,
-            border: "1.3px solid #205e73",
-            color: "#205e73",
+            border: `1.3px solid ${colors.azul}`,
+            color: colors.azul,
             fontWeight: 700,
             textDecoration: "none",
           }}
@@ -124,7 +137,7 @@ export default async function LaudoCompartilhadoPage({ params }: { params: { tok
           Baixar planilha de ação (.xlsx)
         </a>
       ) : (
-        <p style={{ color: "#9a9d93", fontSize: "0.82rem", marginTop: 10 }}>
+        <p style={{ color: colors.tintaFaint, fontSize: "0.82rem", marginTop: 10 }}>
           Planilha ainda não disponível para este laudo.
         </p>
       )}
@@ -135,8 +148,8 @@ export default async function LaudoCompartilhadoPage({ params }: { params: { tok
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: "0.85rem" }}>
-      <span style={{ color: "#6b7176" }}>{label}</span>
-      <span style={{ fontWeight: 600 }}>{value}</span>
+      <span style={{ color: colors.tintaMuted }}>{label}</span>
+      <span style={{ fontWeight: 600, color: colors.tinta }}>{value}</span>
     </div>
   );
 }

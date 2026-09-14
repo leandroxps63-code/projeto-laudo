@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { display, body } from "./landing/fonts";
+import { display, body } from "../fonts";
 
 /**
  * Cabeçalho das páginas públicas (home, "/funcionalidades", "/sobre") —

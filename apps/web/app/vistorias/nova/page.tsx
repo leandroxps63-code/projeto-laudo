@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { fetchAuthed } from "@/lib/fetchAuthed";
+import { headingStyle, labelStyle, inputStyle, primaryButtonStyle, errorTextStyle } from "@/lib/theme";
 
 /**
  * Nova vistoria — cria cliente + edificação + vistoria numa tacada só.
@@ -67,7 +68,7 @@ export default function NovaVistoriaPage() {
 
   return (
     <main style={{ maxWidth: 420, margin: "48px auto", padding: "0 20px" }}>
-      <h1 style={{ fontSize: "1.2rem", fontWeight: 800, marginBottom: 20 }}>Nova vistoria</h1>
+      <h1 style={{ ...headingStyle, fontSize: "1.2rem", marginBottom: 20 }}>Nova vistoria</h1>
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <Field label="Nome do cliente" value={form.clientName} onChange={(v) => update("clientName", v)} />
         <Field
@@ -82,20 +83,11 @@ export default function NovaVistoriaPage() {
           onChange={(v) => update("floors", v)}
           type="number"
         />
-        {error && <p style={{ color: "#c0392b", fontSize: 13 }}>{error}</p>}
+        {error && <p style={errorTextStyle}>{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          style={{
-            padding: 13,
-            borderRadius: 10,
-            border: "none",
-            background: "#205e73",
-            color: "#fff",
-            fontWeight: 700,
-            cursor: loading ? "default" : "pointer",
-            opacity: loading ? 0.7 : 1,
-          }}
+          style={{ ...primaryButtonStyle, opacity: loading ? 0.7 : 1, cursor: loading ? "default" : "pointer" }}
         >
           {loading ? "Criando…" : "Iniciar vistoria"}
         </button>
@@ -117,13 +109,13 @@ function Field({
 }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7176" }}>{label}</span>
+      <span style={labelStyle}>{label}</span>
       <input
         type={type}
         required
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{ padding: 11, borderRadius: 9, border: "1.3px solid #c9c3b4" }}
+        style={inputStyle}
       />
     </label>
   );

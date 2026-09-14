@@ -1,3 +1,5 @@
+import { colors, headingStyle } from "@/lib/theme";
+
 export const metadata = {
   title: "Política de privacidade — Projeto Laudo",
 };
@@ -14,10 +16,10 @@ export const metadata = {
 export default function PrivacidadePage() {
   return (
     <main style={{ maxWidth: 640, margin: "48px auto", padding: "0 20px 60px" }}>
-      <h1 style={{ fontSize: "1.4rem", fontWeight: 800, marginBottom: 6 }}>
+      <h1 style={{ ...headingStyle, fontSize: "1.4rem", marginBottom: 6 }}>
         Política de privacidade
       </h1>
-      <p style={{ color: "#6b7176", fontSize: "0.85rem", marginBottom: 28 }}>
+      <p style={{ color: colors.tintaMuted, fontSize: "0.85rem", marginBottom: 28 }}>
         Última atualização: 12/09/2026
       </p>
 
@@ -71,7 +73,7 @@ export default function PrivacidadePage() {
 
       <Section title="Contato">
         <p>
-          <a href="mailto:leandroxps63@gmail.com" style={{ color: "#205e73", fontWeight: 700 }}>
+          <a href="mailto:leandroxps63@gmail.com" style={{ color: colors.azul, fontWeight: 700 }}>
             leandroxps63@gmail.com
           </a>
         </p>
@@ -83,10 +85,8 @@ export default function PrivacidadePage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={{ marginBottom: 22 }}>
-      <h2 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 6, color: "#171b1f" }}>
-        {title}
-      </h2>
-      <div style={{ fontSize: "0.88rem", color: "#3a3f44", lineHeight: 1.6 }}>{children}</div>
+      <h2 style={{ ...headingStyle, fontSize: "0.95rem", marginBottom: 6 }}>{title}</h2>
+      <div style={{ fontSize: "0.88rem", color: colors.tintaMuted, lineHeight: 1.6 }}>{children}</div>
     </section>
   );
 }

@@ -5,6 +5,15 @@ import Link from "next/link";
 import { SEVERITY_LABELS, type Severity } from "@projeto-laudo/shared";
 import PhotoMarkupModal from "../../components/PhotoMarkupModal";
 import { fetchAuthed, SESSION_EXPIRED_MESSAGE } from "@/lib/fetchAuthed";
+import {
+  colors,
+  fontMono,
+  headingStyle,
+  labelStyle,
+  inputStyle,
+  cardStyle,
+  errorTextStyle,
+} from "@/lib/theme";
 
 type CatalogEntry = {
   id: string;
@@ -235,7 +244,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
 
   return (
     <main style={{ maxWidth: 640, margin: "40px auto", padding: "0 20px" }}>
-      <h1 style={{ fontSize: "1.2rem", fontWeight: 800, marginBottom: 20 }}>
+      <h1 style={{ ...headingStyle, fontSize: "1.2rem", marginBottom: 20 }}>
         Anomalias da vistoria
       </h1>
 
@@ -248,14 +257,14 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
             gap: 12,
             padding: "12px 14px",
             borderRadius: 10,
-            background: "#fbe8e6",
-            color: "#8a2e21",
+            background: colors.erroBg,
+            color: colors.erro,
             fontSize: 13,
             marginBottom: 20,
           }}
         >
           <span>{SESSION_EXPIRED_MESSAGE}</span>
-          <Link href="/login" style={{ color: "#8a2e21", fontWeight: 700, whiteSpace: "nowrap" }}>
+          <Link href="/login" style={{ color: colors.erro, fontWeight: 700, whiteSpace: "nowrap" }}>
             Fazer login
           </Link>
         </div>
@@ -263,16 +272,16 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
 
       {/* ---- lista ---- */}
       {loadingList ? (
-        <p style={{ color: "#6b7176" }}>Carregando…</p>
+        <p style={{ color: colors.tintaMuted }}>Carregando…</p>
       ) : sessionExpired ? null : anomalies.length === 0 ? (
-        <p style={{ color: "#6b7176", marginBottom: 24 }}>Nenhuma anomalia registrada ainda.</p>
+        <p style={{ color: colors.tintaMuted, marginBottom: 24 }}>Nenhuma anomalia registrada ainda.</p>
       ) : (
         <ul style={{ listStyle: "none", padding: 0, marginBottom: 24 }}>
           {anomalies.map((a) => (
             <li
               key={a.id}
               style={{
-                borderTop: "1px solid #e1ddd2",
+                borderTop: `1px solid ${colors.pedra}`,
                 padding: "10px 0",
                 display: "flex",
                 justifyContent: "space-between",
@@ -280,11 +289,11 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
               }}
             >
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>
-                  <span style={{ fontFamily: "monospace", color: "#9a9d93" }}>{a.code}</span>{" "}
+                <div style={{ fontSize: 13, fontWeight: 700, color: colors.tinta }}>
+                  <span style={{ fontFamily: fontMono, color: colors.tintaFaint }}>{a.code}</span>{" "}
                   {a.description}
                 </div>
-                <div style={{ fontSize: 12, color: "#6b7176" }}>
+                <div style={{ fontSize: 12, color: colors.tintaMuted }}>
                   {a.environment} · {a.system_type}
                   {a.anomaly_photos && a.anomaly_photos.length > 0 && (
                     <> · 📷 {a.anomaly_photos.length}</>
@@ -298,8 +307,8 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
       )}
 
       {/* ---- formulário ---- */}
-      <div style={{ border: "1px solid #e1ddd2", borderRadius: 11, padding: 16, marginBottom: 20 }}>
-        <h2 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 12 }}>Nova anomalia</h2>
+      <div style={{ ...cardStyle, padding: 16, marginBottom: 20 }}>
+        <h2 style={{ ...headingStyle, fontSize: "0.95rem", marginBottom: 12 }}>Nova anomalia</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <input
             placeholder="Ambiente (ex: Fachada norte — 3º pavimento)"
@@ -330,8 +339,8 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
                   top: "100%",
                   left: 0,
                   right: 0,
-                  background: "#fff",
-                  border: "1px solid #e1ddd2",
+                  background: colors.superficie,
+                  border: `1px solid ${colors.pedra}`,
                   borderRadius: 8,
                   marginTop: 4,
                   listStyle: "none",
@@ -343,7 +352,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
                   <li
                     key={s.id}
                     onClick={() => pickSuggestion(s)}
-                    style={{ padding: "8px 10px", cursor: "pointer", fontSize: 13 }}
+                    style={{ padding: "8px 10px", cursor: "pointer", fontSize: 13, color: colors.tinta }}
                   >
                     <b>{s.description}</b> — {SEVERITY_LABELS[s.default_severity]}
                   </li>
@@ -353,7 +362,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
           </div>
 
           <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7176" }}>
+            <span style={labelStyle}>
               Tratamento recomendado
               {selected ? " (sugerido pelo banco de anomalias — pode ajustar)" : ""}
             </span>
@@ -367,9 +376,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
           </label>
 
           <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7176" }}>
-              Foto (opcional)
-            </span>
+            <span style={labelStyle}>Foto (opcional)</span>
             <input
               key={fileInputKey}
               type="file"
@@ -394,11 +401,11 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
                   flex: 1,
                   padding: "7px 4px",
                   borderRadius: 8,
-                  border: `1.3px solid ${severity === s ? "#205e73" : "#c9c3b4"}`,
-                  background: severity === s ? "#e4eff1" : "#fff",
+                  border: `1.3px solid ${severity === s ? colors.azul : colors.pedra}`,
+                  background: severity === s ? colors.azulTint : colors.superficie,
                   fontSize: 12,
                   fontWeight: 700,
-                  color: severity === s ? "#143f4d" : "#6b7176",
+                  color: severity === s ? colors.azulEscuro : colors.tintaMuted,
                   cursor: "pointer",
                 }}
               >
@@ -407,7 +414,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
             ))}
           </div>
 
-          {error && <p style={{ color: "#c0392b", fontSize: 13 }}>{error}</p>}
+          {error && <p style={errorTextStyle}>{error}</p>}
 
           <button
             type="button"
@@ -417,7 +424,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
               padding: 12,
               borderRadius: 9,
               border: "none",
-              background: "#205e73",
+              background: colors.azul,
               color: "#fff",
               fontWeight: 700,
               cursor: saving ? "default" : "pointer",
@@ -438,8 +445,8 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
           padding: 13,
           borderRadius: 10,
           border: "none",
-          background: "#f2540b",
-          color: "#fff",
+          background: colors.ambar,
+          color: colors.azulEscuro,
           fontWeight: 700,
           cursor: generatingReport ? "default" : "pointer",
           opacity: generatingReport ? 0.7 : 1,
@@ -447,26 +454,28 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
       >
         {generatingReport ? "Gerando…" : "Gerar laudo"}
       </button>
-      {reportMessage && <p style={{ fontSize: 12.5, color: "#6b7176", margin: "8px 0 0" }}>{reportMessage}</p>}
+      {reportMessage && (
+        <p style={{ fontSize: 12.5, color: colors.tintaMuted, margin: "8px 0 0" }}>{reportMessage}</p>
+      )}
 
       {/* ---- laudos gerados ---- */}
       <div style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 10 }}>Laudos gerados</h2>
+        <h2 style={{ ...headingStyle, fontSize: "0.95rem", marginBottom: 10 }}>Laudos gerados</h2>
         {loadingReports ? (
-          <p style={{ color: "#6b7176", fontSize: 13 }}>Carregando…</p>
+          <p style={{ color: colors.tintaMuted, fontSize: 13 }}>Carregando…</p>
         ) : sessionExpired ? null : reports.length === 0 ? (
-          <p style={{ color: "#9a9d93", fontSize: 13 }}>Nenhum laudo gerado ainda.</p>
+          <p style={{ color: colors.tintaFaint, fontSize: 13 }}>Nenhum laudo gerado ainda.</p>
         ) : (
           <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
             {reports.map((report) => (
-              <li key={report.id} style={{ border: "1px solid #e1ddd2", borderRadius: 11, padding: 14 }}>
+              <li key={report.id} style={{ ...cardStyle, padding: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 13 }}>
-                      {report.report_number}{" "}
-                      <span style={{ color: "#9a9d93", fontWeight: 400 }}>v{report.version}</span>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: colors.tinta }}>
+                      <span style={{ fontFamily: fontMono }}>{report.report_number}</span>{" "}
+                      <span style={{ color: colors.tintaFaint, fontWeight: 400 }}>v{report.version}</span>
                     </div>
-                    <div style={{ fontSize: 11.5, color: "#6b7176" }}>
+                    <div style={{ fontSize: 11.5, color: colors.tintaMuted }}>
                       {REPORT_STATUS_LABELS[report.status] ?? report.status} ·{" "}
                       {new Date(report.created_at).toLocaleDateString("pt-BR")}
                     </div>
@@ -477,7 +486,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
                         href={report.pdf_signed_url}
                         target="_blank"
                         rel="noreferrer"
-                        style={{ fontSize: 12, color: "#205e73", fontWeight: 700, whiteSpace: "nowrap" }}
+                        style={{ fontSize: 12, color: colors.azul, fontWeight: 700, whiteSpace: "nowrap" }}
                       >
                         Baixar PDF
                       </a>
@@ -487,7 +496,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
                         href={report.excel_signed_url}
                         target="_blank"
                         rel="noreferrer"
-                        style={{ fontSize: 12, color: "#205e73", fontWeight: 700, whiteSpace: "nowrap" }}
+                        style={{ fontSize: 12, color: colors.azul, fontWeight: 700, whiteSpace: "nowrap" }}
                       >
                         Baixar .xlsx
                       </a>
@@ -499,14 +508,22 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
                   style={{
                     marginTop: 10,
                     paddingTop: 10,
-                    borderTop: "1px solid #f0ede4",
+                    borderTop: `1px solid ${colors.pedra}`,
                     display: "flex",
                     alignItems: "center",
                     gap: 12,
                     flexWrap: "wrap",
                   }}
                 >
-                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#6b7176" }}>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 12,
+                      color: colors.tintaMuted,
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={report.share_enabled}
@@ -522,12 +539,12 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
                       onClick={() => handleCopyLink(report)}
                       style={{
                         background: "none",
-                        border: "1.3px solid #c9c3b4",
+                        border: `1.3px solid ${colors.pedra}`,
                         borderRadius: 7,
                         padding: "4px 10px",
                         fontSize: 11.5,
                         fontWeight: 700,
-                        color: "#205e73",
+                        color: colors.azul,
                         cursor: "pointer",
                       }}
                     >
@@ -537,7 +554,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
                 </div>
 
                 {manualLinkReportId === report.id && (
-                  <p style={{ fontSize: 11, color: "#6b7176", marginTop: 8, wordBreak: "break-all" }}>
+                  <p style={{ fontSize: 11, color: colors.tintaMuted, marginTop: 8, wordBreak: "break-all" }}>
                     Não foi possível copiar automaticamente. Link:{" "}
                     {`${typeof window !== "undefined" ? window.location.origin : ""}/laudos/compartilhado/${report.share_token}`}
                   </p>
@@ -558,13 +575,13 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
 }
 
 function SeverityChip({ severity }: { severity: Severity }) {
-  const colors: Record<Severity, { bg: string; fg: string }> = {
+  const severityColors: Record<Severity, { bg: string; fg: string }> = {
     baixa: { bg: "#e2efe8", fg: "#2f7d5c" },
-    media: { bg: "#f8ecdb", fg: "#c9862a" },
-    alta: { bg: "#fbe8e6", fg: "#c0392b" },
-    critica: { bg: "#fbe8e6", fg: "#c0392b" },
+    media: { bg: colors.ambarTint, fg: "#a4631a" },
+    alta: { bg: colors.erroBg, fg: colors.erro },
+    critica: { bg: colors.erroBg, fg: colors.erro },
   };
-  const c = colors[severity];
+  const c = severityColors[severity];
   return (
     <span
       style={{
@@ -582,10 +599,3 @@ function SeverityChip({ severity }: { severity: Severity }) {
     </span>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  padding: 11,
-  borderRadius: 9,
-  border: "1.3px solid #c9c3b4",
-  width: "100%",
-};

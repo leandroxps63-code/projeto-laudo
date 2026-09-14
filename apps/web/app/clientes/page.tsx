@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
 import ClienteCard from "./ClienteCard";
+import { colors, headingStyle, primaryButtonStyle, errorTextStyle } from "@/lib/theme";
 
 /**
  * Listagem de clientes e edificações — gestão avulsa, fora do fluxo "Nova vistoria".
@@ -30,31 +31,25 @@ export default async function ClientesPage() {
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: 20,
+          gap: 12,
+          flexWrap: "wrap",
         }}
       >
-        <h1 style={{ fontSize: "1.3rem", fontWeight: 800 }}>Clientes e edificações</h1>
+        <h1 style={{ ...headingStyle, fontSize: "1.4rem" }}>Clientes e edificações</h1>
         <Link
           href="/clientes/novo"
-          style={{
-            padding: "9px 16px",
-            borderRadius: 9,
-            background: "#205e73",
-            color: "#fff",
-            fontWeight: 700,
-            fontSize: "0.82rem",
-            textDecoration: "none",
-          }}
+          style={{ ...primaryButtonStyle, padding: "9px 16px", fontSize: "0.82rem", textDecoration: "none" }}
         >
           + Novo cliente
         </Link>
       </div>
 
-      {error && <p style={{ color: "#c0392b" }}>{error.message}</p>}
+      {error && <p style={errorTextStyle}>{error.message}</p>}
 
       {!error && (!clients || clients.length === 0) && (
-        <p style={{ color: "#6b7176" }}>
+        <p style={{ color: colors.tintaMuted }}>
           Nenhum cliente ainda. Crie o primeiro em{" "}
-          <Link href="/clientes/novo" style={{ color: "#205e73", fontWeight: 700 }}>
+          <Link href="/clientes/novo" style={{ color: colors.azul, fontWeight: 700 }}>
             Novo cliente
           </Link>
           .

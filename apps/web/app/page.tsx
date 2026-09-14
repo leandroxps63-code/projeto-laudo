@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import PublicHeader from "./components/PublicHeader";
-import { display, body, mono } from "./components/landing/fonts";
+import { display, body, mono } from "./fonts";
 import styles from "./components/landing/landing.module.css";
 import Reveal from "./components/landing/Reveal";
 import ComoFunciona from "./components/landing/ComoFunciona";

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import SiteHeader from "./components/SiteHeader";
+import { display, body as bodyFont, mono } from "./fonts";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Projeto Laudo",
@@ -20,7 +22,7 @@ export const dynamic = "force-dynamic";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body>
+      <body className={`${display.variable} ${bodyFont.variable} ${mono.variable}`}>
         <SiteHeader />
         {children}
       </body>

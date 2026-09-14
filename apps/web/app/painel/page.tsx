@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
 import { INSPECTION_STATUS_LABELS, type InspectionStatus } from "@projeto-laudo/shared";
+import { colors, headingStyle, primaryButtonStyle, secondaryButtonStyle, cardStyle } from "@/lib/theme";
 
 /**
  * Dashboard — lista de laudos/vistorias do responsável técnico logado.
@@ -30,36 +31,19 @@ export default async function DashboardPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: 20,
+          marginBottom: 24,
+          gap: 12,
+          flexWrap: "wrap",
         }}
       >
-        <h1 style={{ fontSize: "1.3rem", fontWeight: 800 }}>Meus laudos</h1>
+        <h1 style={{ ...headingStyle, fontSize: "1.4rem" }}>Meus laudos</h1>
         <div style={{ display: "flex", gap: 10 }}>
-          <Link
-            href="/clientes"
-            style={{
-              padding: "9px 16px",
-              borderRadius: 9,
-              border: "1.3px solid #205e73",
-              color: "#205e73",
-              fontWeight: 700,
-              fontSize: "0.82rem",
-              textDecoration: "none",
-            }}
-          >
+          <Link href="/clientes" style={{ ...secondaryButtonStyle, padding: "9px 16px", fontSize: "0.82rem" }}>
             Clientes
           </Link>
           <Link
             href="/vistorias/nova"
-            style={{
-              padding: "9px 16px",
-              borderRadius: 9,
-              background: "#205e73",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: "0.82rem",
-              textDecoration: "none",
-            }}
+            style={{ ...primaryButtonStyle, padding: "9px 16px", fontSize: "0.82rem", textDecoration: "none" }}
           >
             + Nova vistoria
           </Link>
@@ -67,9 +51,9 @@ export default async function DashboardPage() {
       </div>
 
       {(!inspections || inspections.length === 0) && (
-        <p style={{ color: "#6b7176" }}>
+        <p style={{ color: colors.tintaMuted }}>
           Nenhuma vistoria ainda. Crie a primeira em{" "}
-          <Link href="/vistorias/nova" style={{ color: "#205e73", fontWeight: 700 }}>
+          <Link href="/vistorias/nova" style={{ color: colors.azul, fontWeight: 700 }}>
             Nova vistoria
           </Link>
           .
@@ -86,9 +70,8 @@ export default async function DashboardPage() {
               <Link
                 href={`/vistorias/${inspection.id}`}
                 style={{
-                  border: "1px solid #e1ddd2",
-                  borderRadius: 11,
-                  padding: "11px 14px",
+                  ...cardStyle,
+                  padding: "13px 16px",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
@@ -97,12 +80,12 @@ export default async function DashboardPage() {
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>
+                  <div style={{ fontWeight: 700, fontSize: "0.9rem", color: colors.tinta }}>
                     {building?.name ?? "Edificação sem nome"}
                   </div>
-                  <div style={{ fontSize: "0.78rem", color: "#6b7176" }}>{building?.address}</div>
+                  <div style={{ fontSize: "0.78rem", color: colors.tintaMuted }}>{building?.address}</div>
                 </div>
-                <span style={{ fontSize: "0.72rem", fontWeight: 600, color: "#205e73" }}>
+                <span style={{ fontSize: "0.72rem", fontWeight: 600, color: colors.azul }}>
                   {INSPECTION_STATUS_LABELS[inspection.status as InspectionStatus]}
                 </span>
               </Link>

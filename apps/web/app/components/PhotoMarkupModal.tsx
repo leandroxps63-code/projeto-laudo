@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { colors, headingStyle } from "@/lib/theme";
 
 type Point = { x: number; y: number };
 type Stroke = Point[];
@@ -184,9 +185,9 @@ export default function PhotoMarkupModal({ file, onConfirm, onClose }: Props) {
         padding: 20,
       }}
     >
-      <div style={{ background: "#fff", borderRadius: 14, padding: 20, maxWidth: 600 }}>
-        <h2 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: 4 }}>Marque o problema na foto</h2>
-        <p style={{ fontSize: 12.5, color: "#6b7176", marginBottom: 14 }}>
+      <div style={{ background: colors.superficie, borderRadius: 14, padding: 20, maxWidth: 600 }}>
+        <h2 style={{ ...headingStyle, fontSize: "1rem", marginBottom: 4 }}>Marque o problema na foto</h2>
+        <p style={{ fontSize: 12.5, color: colors.tintaMuted, marginBottom: 14 }}>
           Desenhe com o mouse pra apontar ou circular a anomalia (opcional).
         </p>
 
@@ -197,7 +198,7 @@ export default function PhotoMarkupModal({ file, onConfirm, onClose }: Props) {
               display: "block",
               margin: "0 auto",
               borderRadius: 8,
-              border: "1px solid #e1ddd2",
+              border: `1px solid ${colors.pedra}`,
               cursor: "crosshair",
               touchAction: "none",
             }}
@@ -207,7 +208,7 @@ export default function PhotoMarkupModal({ file, onConfirm, onClose }: Props) {
             onMouseLeave={handlePointerUp}
           />
         ) : (
-          <p style={{ fontSize: 12.5, color: "#6b7176" }}>Carregando…</p>
+          <p style={{ fontSize: 12.5, color: colors.tintaMuted }}>Carregando…</p>
         )}
 
         <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
@@ -219,11 +220,11 @@ export default function PhotoMarkupModal({ file, onConfirm, onClose }: Props) {
               flex: 1,
               padding: 11,
               borderRadius: 9,
-              border: "1.3px solid #c9c3b4",
-              background: "#fff",
+              border: `1.3px solid ${colors.pedra}`,
+              background: colors.superficie,
               fontWeight: 700,
               fontSize: 13,
-              color: strokes.length === 0 ? "#c9c3b4" : "#171b1f",
+              color: strokes.length === 0 ? colors.pedra : colors.tinta,
               cursor: strokes.length === 0 ? "default" : "pointer",
             }}
           >
@@ -236,11 +237,11 @@ export default function PhotoMarkupModal({ file, onConfirm, onClose }: Props) {
               flex: 1,
               padding: 11,
               borderRadius: 9,
-              border: "1.3px solid #c9c3b4",
-              background: "#fff",
+              border: `1.3px solid ${colors.pedra}`,
+              background: colors.superficie,
               fontWeight: 700,
               fontSize: 13,
-              color: "#171b1f",
+              color: colors.tinta,
               cursor: "pointer",
             }}
           >
@@ -256,7 +257,7 @@ export default function PhotoMarkupModal({ file, onConfirm, onClose }: Props) {
             padding: 12,
             borderRadius: 9,
             border: "none",
-            background: "#e11d1d",
+            background: colors.erro,
             color: "#fff",
             fontWeight: 700,
             fontSize: 13.5,

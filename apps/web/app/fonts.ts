@@ -1,10 +1,10 @@
 import { Bricolage_Grotesque, Hanken_Grotesk, IBM_Plex_Mono } from "next/font/google";
 
 /**
- * Fontes só da landing pública — o resto do app logado usa a fonte padrão
- * do sistema, então isso fica isolado aqui (via next/font, que gera as
- * variáveis CSS sem baixar a fonte de novo em cada página que a usa) em
- * vez de virar font-family global no layout raiz.
+ * Fontes do site inteiro (público e logado) — geradas via next/font pra não
+ * baixar de novo em cada página, aplicadas uma vez no layout raiz via
+ * variável CSS (--font-display/--font-body/--font-mono, herdada por tudo
+ * abaixo do <body>).
  */
 export const display = Bricolage_Grotesque({
   subsets: ["latin"],
