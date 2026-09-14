@@ -73,6 +73,7 @@ export default function VistoriaDetalheScreen({ route }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const loadAnomalies = useCallback(async () => {
     const { data, error } = await supabase
@@ -80,7 +81,14 @@ export default function VistoriaDetalheScreen({ route }: Props) {
       .select("id, code, environment, system_type, description, severity, anomaly_photos(id)")
       .eq("inspection_id", inspectionId)
       .order("created_at", { ascending: true });
-    if (!error && data) setAnomalies(data as Anomaly[]);
+    if (!error && data) {
+      setAnomalies(data as Anomaly[]);
+      setLoadFailed(false);
+    } else if (error) {
+      // Sem rede não é "vistoria sem anomalia" — mostrar a lista vazia aqui
+      // esconderia o que já foi registrado antes de perder a conexão.
+      setLoadFailed(true);
+    }
     setLoadingList(false);
   }, [inspectionId]);
 
@@ -193,7 +201,7 @@ export default function VistoriaDetalheScreen({ route }: Props) {
 
     if (anomalyError || !anomaly) {
       if (looksLikeNetworkError(anomalyError?.message)) {
-        await enqueueAnomaly({
+        const queued = await enqueueAnomaly({
           inspection_id: inspectionId,
           environment,
           system_type: systemType,
@@ -205,6 +213,18 @@ export default function VistoriaDetalheScreen({ route }: Props) {
           created_by: user.id,
           created_at: new Date().toISOString(),
         });
+
+        if (!queued) {
+          // Nem a fila local salvou — não dá pra fingir que está tudo bem:
+          // mantém o formulário preenchido pra pessoa não perder o que já
+          // digitou e poder tentar de novo (ou copiar à mão).
+          setError(
+            "Sem conexão e não deu pra salvar offline no aparelho. Mantenha esta tela aberta e tente de novo."
+          );
+          setSaving(false);
+          return;
+        }
+
         setEnvironment("");
         setSystemType("");
         setQuery("");
@@ -270,6 +290,16 @@ export default function VistoriaDetalheScreen({ route }: Props) {
           )}
           {loadingList ? (
             <ActivityIndicator style={{ marginVertical: 12 }} />
+          ) : loadFailed ? (
+            <View style={styles.pendingBanner}>
+              <Text style={styles.pendingBannerText}>
+                Não deu pra atualizar a lista agora (sem conexão?). O que já foi registrado antes
+                continua salvo — toque para tentar de novo.
+              </Text>
+              <TouchableOpacity onPress={loadAnomalies}>
+                <Text style={styles.pendingRetry}>Tentar agora</Text>
+              </TouchableOpacity>
+            </View>
           ) : anomalies.length === 0 ? (
             <Text style={styles.empty}>Nenhuma anomalia registrada ainda.</Text>
           ) : null}

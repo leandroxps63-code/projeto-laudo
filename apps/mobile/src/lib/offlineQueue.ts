@@ -30,11 +30,41 @@ export type QueuedAnomaly = {
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 /**
- * expo-sqlite só tem implementação nativa em Android/iOS — no ambiente Web
- * (usado aqui só pra pré-visualização em desenvolvimento) `NativeDatabase`
- * não existe e a promise rejeita. Isolado aqui pra cada chamada degradar
- * graciosamente (loga um aviso, não derruba a tela) em vez de vazar uma
- * promise rejeitada sem tratamento pra fora do módulo.
+ * Sem isso, um init de SQLite que trava (em vez de rejeitar) deixa a
+ * Promise pendurada pra sempre — o try/catch em volta de getDb() não
+ * protege contra isso, já que só pega throw/reject, não uma Promise que
+ * nunca resolve nem rejeita. Achado simulando queda de rede: o caminho de
+ * "salvar offline" ficava preso no "Salvando…" indefinidamente porque o
+ * getDb() nunca resolvia (nem com erro) — sem timeout, quem está em campo
+ * fica sem saber se o dado foi salvo, sem conseguir tentar de novo, e sem
+ * poder fechar o formulário sem perder o que já digitou.
+ */
+const DB_INIT_TIMEOUT_MS = 4000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`[offlineQueue] ${label}: tempo esgotado`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
+/**
+ * No app de verdade (Android/iOS) isso usa SQLite nativo. No preview Web
+ * (só usado pra desenvolvimento) a versão instalada tenta um worker
+ * WASM que o Metro deste projeto não consegue empacotar (falta o wasm
+ * como assetExt) — a Promise fica pendurada, nem resolve nem rejeita
+ * (achado simulando queda de rede nesta sessão). Por isso getDb() é
+ * sempre usado com withTimeout: sem isso, o try/catch de quem chama não
+ * protege contra um init que nunca termina.
  */
 function getDb() {
   if (!dbPromise) {
@@ -67,10 +97,15 @@ function getDb() {
   return dbPromise;
 }
 
-/** Salva uma anomalia localmente porque o envio pro Supabase falhou (provavelmente sem rede). */
-export async function enqueueAnomaly(payload: Omit<QueuedAnomaly, "id">) {
+/**
+ * Salva uma anomalia localmente porque o envio pro Supabase falhou
+ * (provavelmente sem rede). Retorna se a gravação local deu certo — quem
+ * chama precisa saber, porque se isso falhar também (storage cheio,
+ * corrompido) o dado não pode ser tratado como "salvo com segurança".
+ */
+export async function enqueueAnomaly(payload: Omit<QueuedAnomaly, "id">): Promise<boolean> {
   try {
-    const db = await getDb();
+    const db = await withTimeout(getDb(), DB_INIT_TIMEOUT_MS, "enqueueAnomaly");
     await db.runAsync(
       `insert into sync_queue
         (inspection_id, environment, system_type, description, treatment_recommendation, severity, catalog_id, photo_uri, created_by, created_at)
@@ -88,15 +123,17 @@ export async function enqueueAnomaly(payload: Omit<QueuedAnomaly, "id">) {
         payload.created_at,
       ]
     );
+    return true;
   } catch (err) {
     console.warn("[offlineQueue] Falha ao salvar anomalia offline localmente:", err);
+    return false;
   }
 }
 
 /** Quantidade de anomalias de uma vistoria ainda não sincronizadas. */
 export async function getPendingCount(inspectionId: string): Promise<number> {
   try {
-    const db = await getDb();
+    const db = await withTimeout(getDb(), DB_INIT_TIMEOUT_MS, "getPendingCount");
     const row = await db.getFirstAsync<{ count: number }>(
       "select count(*) as count from sync_queue where inspection_id = ?",
       [inspectionId]
@@ -117,7 +154,7 @@ export async function syncPendingAnomalies(inspectionId: string): Promise<number
   let db: SQLite.SQLiteDatabase;
   let pending: QueuedAnomaly[];
   try {
-    db = await getDb();
+    db = await withTimeout(getDb(), DB_INIT_TIMEOUT_MS, "syncPendingAnomalies");
     pending = await db.getAllAsync<QueuedAnomaly>(
       "select * from sync_queue where inspection_id = ? order by created_at asc",
       [inspectionId]
