@@ -3,15 +3,25 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * Reforço de UX: redireciona pro login quem tenta abrir uma página
- * autenticada sem sessão, antes do React renderizar (hoje só o dashboard
- * "/" tinha esse guard, via redirect() dentro do server component — as
- * páginas client component como /vistorias/* e /clientes/* dependiam só
- * da API retornar 401, o que "funciona" mas deixa a tela vazia piscando).
- * A autorização de verdade continua sendo RLS + getUser() em cada rota —
- * isso aqui não substitui aquilo, só evita a tela vazia/errada.
+ * autenticada sem sessão, antes do React renderizar (as páginas client
+ * component como /vistorias/* e /clientes/* dependiam só da API retornar
+ * 401, o que "funciona" mas deixa a tela vazia piscando). A autorização de
+ * verdade continua sendo RLS + getUser() em cada rota — isso aqui não
+ * substitui aquilo, só evita a tela vazia/errada.
+ *
+ * "/" virou a home pública (antes era o dashboard, movido pra /painel) —
+ * por isso entra em PUBLIC_PATHS com checagem exata (===), não startsWith,
+ * senão "toda rota começa com /" liberaria o site inteiro sem login.
  */
 
-const PUBLIC_PATHS = ["/login", "/laudos/compartilhado", "/privacidade"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/cadastro",
+  "/laudos/compartilhado",
+  "/privacidade",
+  "/funcionalidades",
+  "/sobre",
+];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
@@ -37,7 +47,9 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
+  const isPublic =
+    request.nextUrl.pathname === "/" ||
+    PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
@@ -45,9 +57,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && request.nextUrl.pathname === "/login") {
+  if (user && (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/cadastro")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/painel";
     return NextResponse.redirect(url);
   }
 

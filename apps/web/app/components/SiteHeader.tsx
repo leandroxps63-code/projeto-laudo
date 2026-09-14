@@ -3,18 +3,26 @@
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
 
-const PUBLIC_PATHS = ["/login", "/laudos/compartilhado", "/privacidade"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/cadastro",
+  "/laudos/compartilhado",
+  "/privacidade",
+  "/funcionalidades",
+  "/sobre",
+];
 
 /**
  * Barra de logout presente em toda página autenticada do site — espelha o
  * padrão do app mobile (botão no headerRight, global pra toda tela). Fica de
- * fora das páginas públicas (login, laudo compartilhado) via checagem de path.
+ * fora das páginas públicas (login, cadastro, home, laudo compartilhado),
+ * que têm o próprio cabeçalho (PublicHeader) embutido na página.
  */
 export default function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
 
-  const isPublic = PUBLIC_PATHS.some((path) => pathname?.startsWith(path));
+  const isPublic = pathname === "/" || PUBLIC_PATHS.some((path) => pathname?.startsWith(path));
   if (isPublic) return null;
 
   async function handleLogout() {
