@@ -1,0 +1,424 @@
+/* Paleta e tipografia fechadas na fase 2 do roadmap (prancha de
+   identidade visual) — aplicadas aqui como tokens locais, escopados à
+   landing pública via CSS module (não vazam pro resto do app logado). */
+.root {
+  --azul: #205e73;
+  --azul-escuro: #0f2f3a;
+  --azul-tint: #dfeaec;
+  --ambar: #d97b1f;
+  --ambar-tint: #f7e3cc;
+  --concreto: #f5f1e9;
+  --superficie: #ffffff;
+  --superficie-2: #ece5d5;
+  --pedra: #d9d2c0;
+  --tinta: #141f22;
+  --tinta-muted: #56635f;
+  --tinta-faint: #8b968f;
+  --shadow: 0 1px 2px rgba(20, 31, 34, 0.06), 0 14px 34px -18px rgba(20, 31, 34, 0.28);
+
+  background: var(--concreto);
+  color: var(--tinta);
+  font-family: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.55;
+}
+
+.wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.eyebrow {
+  display: inline-block;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--azul);
+}
+
+/* ---- hero ---- */
+.hero {
+  padding: 56px 0 72px;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+@media (max-width: 860px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 32px 0 48px;
+  }
+}
+
+.heroText h1 {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.1rem, 4.6vw, 3.1rem);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  margin: 10px 0 16px;
+}
+.heroText p {
+  color: var(--tinta-muted);
+  font-size: 1.08rem;
+  max-width: 46ch;
+  margin: 0 0 26px;
+}
+
+.ctaRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.btnPrimary,
+.btnSecondary {
+  font-family: var(--font-body), sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 13px 22px;
+  border-radius: 10px;
+  text-decoration: none;
+  display: inline-block;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+.btnPrimary {
+  background: var(--ambar);
+  color: var(--azul-escuro);
+  border: none;
+}
+.btnPrimary:hover {
+  background: #c76d16;
+}
+.btnSecondary {
+  background: transparent;
+  color: var(--azul);
+  border: 1.4px solid var(--azul);
+}
+.btnSecondary:hover {
+  background: var(--azul-tint);
+}
+.btnPrimary:active,
+.btnSecondary:active {
+  transform: translateY(1px);
+}
+
+.heroImage {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--pedra);
+  aspect-ratio: 16 / 11;
+  position: relative;
+}
+.heroImage img {
+  object-fit: cover;
+}
+
+/* entrada em estágio, uma vez, do estado visível de repouso */
+.heroEyebrow,
+.heroText h1,
+.heroText p,
+.ctaRow,
+.heroImage {
+  opacity: 0;
+  animation: riseIn 0.6s ease forwards;
+}
+.heroEyebrow { animation-delay: 0.05s; }
+.heroText h1 { animation-delay: 0.15s; }
+.heroText p { animation-delay: 0.28s; }
+.ctaRow { animation-delay: 0.4s; }
+.heroImage { animation-delay: 0.22s; }
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- seções genéricas ---- */
+.section {
+  padding: 64px 0;
+  border-top: 1px solid var(--pedra);
+}
+.sectionHead {
+  max-width: 60ch;
+  margin-bottom: 34px;
+}
+.sectionHead h2 {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 3vw, 1.9rem);
+  letter-spacing: -0.01em;
+  margin: 8px 0 8px;
+  text-wrap: balance;
+}
+.sectionHead p {
+  color: var(--tinta-muted);
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* revelação em scroll */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---- como funciona (abas) ---- */
+.tabsCard {
+  background: var(--superficie);
+  border: 1px solid var(--pedra);
+  border-radius: 18px;
+  padding: 26px;
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: center;
+}
+@media (max-width: 760px) {
+  .tabsCard {
+    grid-template-columns: 1fr;
+  }
+}
+.tabsNav {
+  display: flex;
+  gap: 4px;
+  background: var(--superficie-2);
+  border-radius: 12px;
+  padding: 4px;
+  position: relative;
+}
+.tabBtn {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  background: none;
+  border: none;
+  padding: 11px 10px;
+  font-family: var(--font-body), sans-serif;
+  font-weight: 600;
+  font-size: 0.84rem;
+  color: var(--tinta-muted);
+  cursor: pointer;
+  border-radius: 9px;
+  transition: color 0.25s ease;
+}
+.tabBtn.active {
+  color: #fff;
+}
+.tabBtn:focus-visible {
+  outline: 2px solid var(--azul);
+  outline-offset: 2px;
+}
+.tabIndicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 8px) / 3);
+  background: var(--azul);
+  border-radius: 9px;
+  transition: transform 0.32s cubic-bezier(0.65, 0, 0.35, 1);
+  z-index: 0;
+}
+.tabPanels {
+  margin-top: 20px;
+  min-height: 110px;
+}
+.tabPanel {
+  display: none;
+  gap: 14px;
+  align-items: flex-start;
+}
+.tabPanel.active {
+  display: flex;
+  animation: panelIn 0.4s ease;
+}
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tabNum {
+  font-family: var(--font-mono), monospace;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--ambar);
+  background: var(--ambar-tint);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.tabPanel h3 {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.08rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+.tabPanel p {
+  margin: 0;
+  color: var(--tinta-muted);
+  font-size: 0.92rem;
+}
+.tabsImage {
+  border-radius: 14px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  position: relative;
+  border: 1px solid var(--pedra);
+}
+.tabsImage img {
+  object-fit: cover;
+}
+
+/* ---- apresentação (lista de capacidades) ---- */
+.capList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.capItem {
+  background: var(--superficie);
+  border: 1px solid var(--pedra);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+.capItem .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ambar);
+  display: inline-block;
+  margin-bottom: 10px;
+}
+.capItem p {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+/* ---- pra quem é ---- */
+.audienceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+.audienceCard h3 {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.02rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+.audienceCard p {
+  margin: 0;
+  color: var(--tinta-muted);
+  font-size: 0.9rem;
+}
+
+/* ---- sobre ---- */
+.sobre {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+@media (max-width: 760px) {
+  .sobre {
+    grid-template-columns: 1fr;
+  }
+}
+.sobre p {
+  font-size: 1.05rem;
+  color: var(--tinta);
+  max-width: 46ch;
+}
+.sobreImage {
+  border-radius: 18px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  position: relative;
+  border: 1px solid var(--pedra);
+  box-shadow: var(--shadow);
+}
+.sobreImage img {
+  object-fit: cover;
+}
+
+/* ---- chamada final ---- */
+.ctaFinal {
+  background: var(--azul-escuro);
+  border-radius: 24px;
+  padding: 52px 36px;
+  text-align: center;
+  color: #fff;
+}
+.ctaFinal h2 {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.6rem, 3.4vw, 2.2rem);
+  margin: 0 0 10px;
+  text-wrap: balance;
+}
+.ctaFinal p {
+  color: #cfe3e8;
+  margin: 0 0 24px;
+  font-size: 0.95rem;
+}
+.ctaFinal .btnPrimary {
+  font-size: 1rem;
+  padding: 14px 28px;
+}
+
+/* ---- rodapé ---- */
+.footer {
+  padding: 32px 0 56px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: var(--tinta-faint);
+}
+.footer a {
+  color: var(--tinta-muted);
+  text-decoration: none;
+}
+.footer a:hover {
+  color: var(--azul);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroEyebrow,
+  .heroText h1,
+  .heroText p,
+  .ctaRow,
+  .heroImage {
+    animation: none;
+    opacity: 1;
+  }
+  .reveal {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+  .tabPanel.active {
+    animation: none;
+  }
+}

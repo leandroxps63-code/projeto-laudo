@@ -70,11 +70,13 @@ export const config = {
   // Exclui assets estáticos, ícones/favicon (rotas de convenção do App
   // Router: app/icon.png, app/apple-icon.png — sem isso, o navegador pede
   // o favicon deslogado e cai no redirect pro /login, deixando o ícone
-  // quebrado até em página pública como o próprio /login) e toda a API
-  // (as rotas de API já reforçam auth internamente via getUser()/RLS e
-  // devem responder JSON, não redirect). Achado testando o favicon de
-  // verdade no Chrome, deslogado.
+  // quebrado até em página pública como o próprio /login), as imagens da
+  // landing pública em /public/landing (mesmo problema: sem excluir,
+  // /_next/image busca a imagem original internamente, cai no redirect
+  // pro /login e devolve HTML em vez de PNG — "the requested resource
+  // isn't a valid image") e toda a API (as rotas de API já reforçam auth
+  // internamente via getUser()/RLS e devem responder JSON, não redirect).
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|api).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|landing|api).*)",
   ],
 };
