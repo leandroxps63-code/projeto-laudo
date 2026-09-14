@@ -20,15 +20,17 @@ export default function PrivacidadePage() {
         Política de privacidade
       </h1>
       <p style={{ color: colors.tintaMuted, fontSize: "0.85rem", marginBottom: 28 }}>
-        Última atualização: 12/09/2026
+        Última atualização: 14/09/2026
       </p>
 
       <Section title="Dados coletados">
         <p>
-          Nome e e-mail do responsável técnico/assistente (conta de acesso); dados do cliente e
-          da edificação inspecionada (nome, endereço, número de pavimentos); fotos tiradas
-          durante a vistoria; descrições de anomalias e tratamentos recomendados; número de ART
-          quando informado.
+          Nome e e-mail do responsável técnico/assistente (conta de acesso — via cadastro direto
+          ou login com Google); CPF, data de nascimento, telefone e número de registro no CREA,
+          quando o próprio usuário optar por preenchê-los no perfil (usados pra identificar o
+          responsável técnico no laudo emitido); dados do cliente e da edificação inspecionada
+          (nome, endereço, número de pavimentos); fotos tiradas durante a vistoria; descrições de
+          anomalias e tratamentos recomendados; número de ART quando informado.
         </p>
       </Section>
 

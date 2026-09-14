@@ -1,4 +1,4 @@
-// GERADO AUTOMATICAMENTE a partir do projeto Supabase "projeto-laudo-dev" em 12/09/2026.
+// GERADO AUTOMATICAMENTE a partir do projeto Supabase "projeto-laudo-dev" em 14/09/2026.
 // Não editar à mão — regenerar via Supabase MCP (generate_typescript_types) ou
 // `supabase gen types typescript` sempre que a migration mudar.
 
@@ -411,24 +411,33 @@ export type Database = {
       }
       profiles: {
         Row: {
+          birth_date: string | null
+          cpf: string | null
           crea: string | null
           created_at: string
           full_name: string
           id: string
+          phone: string | null
           role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
+          birth_date?: string | null
+          cpf?: string | null
           crea?: string | null
           created_at?: string
           full_name: string
           id: string
+          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
         }
         Update: {
+          birth_date?: string | null
+          cpf?: string | null
           crea?: string | null
           created_at?: string
           full_name?: string
           id?: string
+          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
         }
         Relationships: []

@@ -77,6 +77,8 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
   const [reportMessage, setReportMessage] = useState<string | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [artNumber, setArtNumber] = useState("");
+  const [profileCrea, setProfileCrea] = useState<string | null | undefined>(undefined);
 
   const [reports, setReports] = useState<Report[]>([]);
   const [loadingReports, setLoadingReports] = useState(true);
@@ -114,6 +116,13 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
     loadAnomalies();
     loadReports();
   }, [loadAnomalies, loadReports]);
+
+  useEffect(() => {
+    fetchAuthed("/api/profile")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setProfileCrea(data?.profile?.crea ?? null))
+      .catch(() => setProfileCrea(null));
+  }, []);
 
   useEffect(() => {
     if (!query || (selected && selected.description === query)) {
@@ -201,7 +210,11 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
   async function handleGenerateReport() {
     setGeneratingReport(true);
     setReportMessage("Gerando…");
-    const res = await fetchAuthed(`/api/inspections/${params.id}/reports`, { method: "POST" });
+    const res = await fetchAuthed(`/api/inspections/${params.id}/reports`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ artNumber: artNumber || undefined }),
+    });
     const data = await res.json();
     if (res.ok) {
       setReportMessage(data.note ?? null);
@@ -436,6 +449,35 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
       </div>
 
       {/* ---- gerar laudo ---- */}
+      {profileCrea === null && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: colors.ambarTint,
+            color: "#8a5a1c",
+            fontSize: 12.5,
+            marginBottom: 10,
+          }}
+        >
+          <span>Seu perfil está sem CREA — o laudo sai sem essa informação na assinatura.</span>
+          <Link href="/perfil" style={{ color: "#8a5a1c", fontWeight: 700, whiteSpace: "nowrap" }}>
+            Completar perfil
+          </Link>
+        </div>
+      )}
+
+      <input
+        placeholder="Nº da ART (opcional)"
+        value={artNumber}
+        onChange={(e) => setArtNumber(e.target.value)}
+        style={{ ...inputStyle, marginBottom: 10 }}
+      />
+
       <button
         type="button"
         onClick={handleGenerateReport}

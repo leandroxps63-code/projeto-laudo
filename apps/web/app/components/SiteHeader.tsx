@@ -62,22 +62,36 @@ export default function SiteHeader() {
       >
         Projeto Laudo
       </Link>
-      <button
-        onClick={handleLogout}
-        style={{
-          background: "none",
-          border: `1.3px solid ${colors.pedra}`,
-          borderRadius: 8,
-          padding: "7px 14px",
-          color: colors.erro,
-          fontWeight: 700,
-          fontFamily: fontBody,
-          fontSize: 13,
-          cursor: "pointer",
-        }}
-      >
-        Sair
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <Link
+          href="/perfil"
+          style={{
+            color: colors.tintaMuted,
+            fontWeight: 700,
+            fontFamily: fontBody,
+            fontSize: 13,
+            textDecoration: "none",
+          }}
+        >
+          Meu perfil
+        </Link>
+        <button
+          onClick={handleLogout}
+          style={{
+            background: "none",
+            border: `1.3px solid ${colors.pedra}`,
+            borderRadius: 8,
+            padding: "7px 14px",
+            color: colors.erro,
+            fontWeight: 700,
+            fontFamily: fontBody,
+            fontSize: 13,
+            cursor: "pointer",
+          }}
+        >
+          Sair
+        </button>
+      </div>
     </header>
   );
 }

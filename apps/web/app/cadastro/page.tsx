@@ -37,9 +37,16 @@ export default function CadastroPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkEmail, setCheckEmail] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+
+    if (!consent) {
+      setError("Confirme que você leu a política de privacidade pra continuar.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -177,6 +184,22 @@ export default function CadastroPage() {
             </div>
             <span style={{ fontSize: 11, color: colors.tintaFaint }}>Mínimo de 6 caracteres.</span>
           </label>
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, color: colors.tintaMuted }}>
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              style={{ marginTop: 2 }}
+            />
+            <span>
+              Li e aceito a{" "}
+              <a href="/privacidade" target="_blank" rel="noreferrer" style={{ color: colors.azul, fontWeight: 700 }}>
+                Política de privacidade
+              </a>
+              .
+            </span>
+          </label>
+
           {error && (
             <p role="alert" style={errorTextStyle}>
               {error}
@@ -196,7 +219,7 @@ export default function CadastroPage() {
           <span style={{ fontSize: 11.5, color: colors.tintaFaint }}>ou</span>
           <span style={{ flex: 1, height: 1, background: colors.pedra }} />
         </div>
-        <GoogleButton disabled={loading} />
+        <GoogleButton disabled={loading || !consent} />
 
         <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: colors.tintaMuted }}>
           Já tem conta?{" "}
