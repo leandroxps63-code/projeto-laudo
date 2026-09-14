@@ -76,9 +76,17 @@ export default function PhotoMarkupModal({ visible, photoUri, onConfirm }: Props
     setStrokes((prev) => prev.slice(0, -1));
   }
 
-  async function handleConfirm() {
-    if (strokes.length === 0 || !viewShotRef.current?.capture) {
-      // nada desenhado — usa a foto original sem gerar uma cópia à toa
+  // Sempre captura pelo ViewShot (com ou sem marcação) em vez de usar a
+  // foto crua da câmera direto — o ViewShot já recomprime pro tamanho do
+  // canvas (options.quality 0.85), o que reduz o volume de dados no upload
+  // pela rede do celular, mesmo a foto já saindo da câmera com quality 0.7.
+  // Mesmo ajuste feito na versão web depois de achar que pular a marcação
+  // lá enviava a foto crua sem comprimir; aqui o risco é menor (upload vai
+  // direto pro Supabase Storage, não pela função serverless da Vercel, que
+  // tem limite de 4.5 MB), mas ainda vale pra economizar dados 4G/5G do
+  // inspetor em campo.
+  async function captureAndConfirm() {
+    if (!viewShotRef.current?.capture) {
       if (photoUri) onConfirm(photoUri);
       reset();
       return;
@@ -88,9 +96,12 @@ export default function PhotoMarkupModal({ visible, photoUri, onConfirm }: Props
     reset();
   }
 
+  function handleConfirm() {
+    captureAndConfirm();
+  }
+
   function handleSkip() {
-    if (photoUri) onConfirm(photoUri);
-    reset();
+    captureAndConfirm();
   }
 
   if (!photoUri) return null;
