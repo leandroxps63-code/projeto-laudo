@@ -12,11 +12,16 @@ import { NextResponse, type NextRequest } from "next/server";
  * "/" virou a home pública (antes era o dashboard, movido pra /painel) —
  * por isso entra em PUBLIC_PATHS com checagem exata (===), não startsWith,
  * senão "toda rota começa com /" liberaria o site inteiro sem login.
+ *
+ * /auth/callback também é pública por definição: é a rota que troca o code
+ * do OAuth (Google) pela sessão — ainda não existe sessão quando ela é
+ * chamada, então bloqueá-la quebraria o próprio fluxo de login.
  */
 
 const PUBLIC_PATHS = [
   "/login",
   "/cadastro",
+  "/auth/callback",
   "/laudos/compartilhado",
   "/privacidade",
   "/funcionalidades",

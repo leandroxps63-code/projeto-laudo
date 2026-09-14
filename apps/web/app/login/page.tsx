@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
+import GoogleButton from "../components/GoogleButton";
 import {
   colors,
   fontMono,
@@ -20,6 +21,7 @@ import {
  */
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const [email, setEmail] = useState("");
@@ -27,6 +29,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const erro = searchParams.get("erro");
+    if (erro) setError(erro);
+  }, [searchParams]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -140,6 +147,13 @@ export default function LoginPage() {
             {loading ? "Entrando…" : "Entrar"}
           </button>
         </form>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0" }}>
+          <span style={{ flex: 1, height: 1, background: colors.pedra }} />
+          <span style={{ fontSize: 11.5, color: colors.tintaFaint }}>ou</span>
+          <span style={{ flex: 1, height: 1, background: colors.pedra }} />
+        </div>
+        <GoogleButton disabled={loading} />
 
         <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: colors.tintaMuted }}>
           Não tem conta?{" "}
