@@ -51,7 +51,7 @@ export default function DashboardScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate("NovaVistoria")}>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate("SelecionarCliente")}>
           <Text style={styles.primaryButtonText}>+ Nova vistoria</Text>
         </TouchableOpacity>
       </View>

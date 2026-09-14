@@ -1,12 +1,14 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import DashboardScreen from "../screens/DashboardScreen";
+import SelecionarClienteScreen from "../screens/SelecionarClienteScreen";
 import NovaVistoriaScreen from "../screens/NovaVistoriaScreen";
 import VistoriaDetalheScreen from "../screens/VistoriaDetalheScreen";
 import LogoutButton from "../components/LogoutButton";
 
 export type RootStackParamList = {
   Dashboard: undefined;
+  SelecionarCliente: undefined;
   NovaVistoria: undefined;
   VistoriaDetalhe: { inspectionId: string; buildingName: string };
 };
@@ -28,9 +30,14 @@ export default function RootNavigator() {
       >
         <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ title: "Meus laudos" }} />
         <Stack.Screen
+          name="SelecionarCliente"
+          component={SelecionarClienteScreen}
+          options={{ title: "Nova vistoria" }}
+        />
+        <Stack.Screen
           name="NovaVistoria"
           component={NovaVistoriaScreen}
-          options={{ title: "Nova vistoria" }}
+          options={{ title: "Cliente novo" }}
         />
         <Stack.Screen
           name="VistoriaDetalhe"
