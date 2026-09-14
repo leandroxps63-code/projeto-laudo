@@ -11,6 +11,8 @@
  * navegar pra página). Só reage a 401 do próprio backend, uma vez —
  * não mascara outros erros.
  */
+export const SESSION_EXPIRED_MESSAGE = "Sua sessão expirou. Faça login novamente pra continuar.";
+
 export async function fetchAuthed(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const res = await fetch(input, init);
   if (res.status !== 401) return res;

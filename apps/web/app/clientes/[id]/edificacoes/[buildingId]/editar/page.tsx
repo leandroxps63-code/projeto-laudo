@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { fetchAuthed } from "@/lib/fetchAuthed";
+import { fetchAuthed, SESSION_EXPIRED_MESSAGE } from "@/lib/fetchAuthed";
 
 /** Editar edificação existente. */
 export default function EditarEdificacaoPage({
@@ -18,14 +18,16 @@ export default function EditarEdificacaoPage({
 
   useEffect(() => {
     fetchAuthed(`/api/buildings/${params.buildingId}`)
-      .then((res) => res.json())
-      .then((data) => {
+      .then(async (res) => {
+        const data = await res.json();
         if (data.building) {
           setForm({
             name: data.building.name ?? "",
             address: data.building.address ?? "",
             floors: data.building.floors != null ? String(data.building.floors) : "",
           });
+        } else if (res.status === 401) {
+          setError(SESSION_EXPIRED_MESSAGE);
         } else {
           setError(data.error ?? "Edificação não encontrada.");
         }

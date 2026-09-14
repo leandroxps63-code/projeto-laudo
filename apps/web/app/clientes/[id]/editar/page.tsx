@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { fetchAuthed } from "@/lib/fetchAuthed";
+import { fetchAuthed, SESSION_EXPIRED_MESSAGE } from "@/lib/fetchAuthed";
 
 /** Editar cliente existente. */
 export default function EditarClientePage({ params }: { params: { id: string } }) {
@@ -14,14 +14,16 @@ export default function EditarClientePage({ params }: { params: { id: string } }
 
   useEffect(() => {
     fetchAuthed(`/api/clients/${params.id}`)
-      .then((res) => res.json())
-      .then((data) => {
+      .then(async (res) => {
+        const data = await res.json();
         if (data.client) {
           setForm({
             name: data.client.name ?? "",
             email: data.client.email ?? "",
             phone: data.client.phone ?? "",
           });
+        } else if (res.status === 401) {
+          setError(SESSION_EXPIRED_MESSAGE);
         } else {
           setError(data.error ?? "Cliente não encontrado.");
         }

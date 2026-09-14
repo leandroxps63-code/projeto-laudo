@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { SEVERITY_LABELS, type Severity } from "@projeto-laudo/shared";
 import PhotoMarkupModal from "../../components/PhotoMarkupModal";
-import { fetchAuthed } from "@/lib/fetchAuthed";
+import { fetchAuthed, SESSION_EXPIRED_MESSAGE } from "@/lib/fetchAuthed";
 
 type CatalogEntry = {
   id: string;
@@ -66,6 +67,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
   const [error, setError] = useState<string | null>(null);
   const [reportMessage, setReportMessage] = useState<string | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const [reports, setReports] = useState<Report[]>([]);
   const [loadingReports, setLoadingReports] = useState(true);
@@ -76,6 +78,11 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
   const loadAnomalies = useCallback(async () => {
     setLoadingList(true);
     const res = await fetchAuthed(`/api/inspections/${params.id}/anomalies`);
+    if (res.status === 401) {
+      setSessionExpired(true);
+      setLoadingList(false);
+      return;
+    }
     const data = await res.json();
     if (res.ok) setAnomalies(data.anomalies);
     setLoadingList(false);
@@ -84,6 +91,11 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
   const loadReports = useCallback(async () => {
     setLoadingReports(true);
     const res = await fetchAuthed(`/api/inspections/${params.id}/reports`);
+    if (res.status === 401) {
+      setSessionExpired(true);
+      setLoadingReports(false);
+      return;
+    }
     const data = await res.json();
     if (res.ok) setReports(data.reports);
     setLoadingReports(false);
@@ -140,7 +152,8 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
     const data = await res.json();
 
     if (!res.ok) {
-      setError(data.error ?? "Falha ao registrar anomalia.");
+      if (res.status === 401) setSessionExpired(true);
+      setError(res.status === 401 ? SESSION_EXPIRED_MESSAGE : data.error ?? "Falha ao registrar anomalia.");
       setSaving(false);
       return;
     }
@@ -153,8 +166,13 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
         { method: "POST", body: photoForm }
       );
       if (!photoRes.ok) {
-        const photoData = await photoRes.json().catch(() => ({}));
-        setError(`Anomalia salva, mas a foto falhou: ${photoData.error ?? "erro desconhecido."}`);
+        if (photoRes.status === 401) {
+          setSessionExpired(true);
+          setError(`Anomalia salva, mas a foto falhou: ${SESSION_EXPIRED_MESSAGE}`);
+        } else {
+          const photoData = await photoRes.json().catch(() => ({}));
+          setError(`Anomalia salva, mas a foto falhou: ${photoData.error ?? "erro desconhecido."}`);
+        }
       }
     }
 
@@ -179,6 +197,9 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
     if (res.ok) {
       setReportMessage(data.note ?? null);
       loadReports();
+    } else if (res.status === 401) {
+      setSessionExpired(true);
+      setReportMessage(SESSION_EXPIRED_MESSAGE);
     } else {
       setReportMessage(data.error ?? "Falha ao gerar laudo.");
     }
@@ -218,10 +239,32 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
         Anomalias da vistoria
       </h1>
 
+      {sessionExpired && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: "12px 14px",
+            borderRadius: 10,
+            background: "#fbe8e6",
+            color: "#8a2e21",
+            fontSize: 13,
+            marginBottom: 20,
+          }}
+        >
+          <span>{SESSION_EXPIRED_MESSAGE}</span>
+          <Link href="/login" style={{ color: "#8a2e21", fontWeight: 700, whiteSpace: "nowrap" }}>
+            Fazer login
+          </Link>
+        </div>
+      )}
+
       {/* ---- lista ---- */}
       {loadingList ? (
         <p style={{ color: "#6b7176" }}>Carregando…</p>
-      ) : anomalies.length === 0 ? (
+      ) : sessionExpired ? null : anomalies.length === 0 ? (
         <p style={{ color: "#6b7176", marginBottom: 24 }}>Nenhuma anomalia registrada ainda.</p>
       ) : (
         <ul style={{ listStyle: "none", padding: 0, marginBottom: 24 }}>
@@ -411,7 +454,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
         <h2 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 10 }}>Laudos gerados</h2>
         {loadingReports ? (
           <p style={{ color: "#6b7176", fontSize: 13 }}>Carregando…</p>
-        ) : reports.length === 0 ? (
+        ) : sessionExpired ? null : reports.length === 0 ? (
           <p style={{ color: "#9a9d93", fontSize: 13 }}>Nenhum laudo gerado ainda.</p>
         ) : (
           <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>

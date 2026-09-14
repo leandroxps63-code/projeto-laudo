@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { fetchAuthed } from "@/lib/fetchAuthed";
+import { fetchAuthed, SESSION_EXPIRED_MESSAGE } from "@/lib/fetchAuthed";
 
 type Building = {
   id: string;
@@ -44,7 +44,7 @@ export default function ClienteCard({ client }: { client: Client }) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      setError(data.error ?? "Falha ao iniciar vistoria.");
+      setError(res.status === 401 ? SESSION_EXPIRED_MESSAGE : data.error ?? "Falha ao iniciar vistoria.");
       setStartingInspectionId(null);
       return;
     }
@@ -63,7 +63,7 @@ export default function ClienteCard({ client }: { client: Client }) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      setError(data.error ?? "Falha ao excluir.");
+      setError(res.status === 401 ? SESSION_EXPIRED_MESSAGE : data.error ?? "Falha ao excluir.");
       setDeleting(false);
       setPendingDelete(null);
       return;
