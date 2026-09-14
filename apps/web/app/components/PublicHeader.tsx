@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase-server";
 
 /**
  * Cabeçalho das páginas públicas (home, futuras "/funcionalidades" e
@@ -8,15 +7,19 @@ import { createClient } from "@/lib/supabase-server";
  * a pessoa pode querer navegar a página pública mesmo logada (ex: conferir
  * o texto antes de mandar o link pra alguém).
  *
+ * Recebe loggedIn pronto em vez de checar a sessão aqui dentro: um Server
+ * Component async usado como <PublicHeader /> quebra o type-check do
+ * `next build` ("cannot be used as a JSX component", Promise<Element> não
+ * é um tipo de retorno de componente válido pro TypeScript) — só apareceu
+ * no build da Vercel, não no `tsc --noEmit` nem no `next build` local, por
+ * alguma diferença de resolução de tipos entre os dois ambientes. Deixar a
+ * página (que já é async) buscar a sessão e passar como prop evita o
+ * problema de raiz, além de deixar o componente mais simples de reutilizar.
+ *
  * Estilo provisório (fase 1 do roadmap é só arquitetura/navegação) — o
  * visual definitivo entra na fase 5, depois do sistema visual (fase 2).
  */
-export default async function PublicHeader() {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+export default function PublicHeader({ loggedIn }: { loggedIn: boolean }) {
   return (
     <header
       style={{
@@ -40,7 +43,7 @@ export default async function PublicHeader() {
         Projeto Laudo
       </Link>
 
-      {user ? (
+      {loggedIn ? (
         <Link
           href="/painel"
           style={{

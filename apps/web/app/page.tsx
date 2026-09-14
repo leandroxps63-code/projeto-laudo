@@ -1,4 +1,5 @@
 import PublicHeader from "./components/PublicHeader";
+import { createClient } from "@/lib/supabase-server";
 
 /**
  * Home pública — fase 1 do roadmap da landing page é só arquitetura/
@@ -10,10 +11,15 @@ export const metadata = {
   title: "Projeto Laudo",
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <>
-      <PublicHeader />
+      <PublicHeader loggedIn={!!user} />
       <main style={{ maxWidth: 640, margin: "80px auto", padding: "0 20px", textAlign: "center" }}>
         <h1 style={{ fontSize: "1.6rem", fontWeight: 800, marginBottom: 12 }}>
           Laudo de inspeção predial, do jeito certo.
