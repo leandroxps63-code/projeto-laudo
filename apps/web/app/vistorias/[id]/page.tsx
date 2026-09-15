@@ -90,6 +90,14 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
   const [manualLinkReportId, setManualLinkReportId] = useState<string | null>(null);
   const [togglingShareId, setTogglingShareId] = useState<string | null>(null);
 
+  const [previousInspection, setPreviousInspection] = useState<{
+    id: string;
+    createdAt: string;
+    anomaliesCount: number;
+  } | null>(null);
+  const [reinspectionDismissed, setReinspectionDismissed] = useState(false);
+  const [copyingAnomalies, setCopyingAnomalies] = useState(false);
+
   const loadAnomalies = useCallback(async () => {
     setLoadingList(true);
     const res = await fetchAuthed(`/api/inspections/${params.id}/anomalies`);
@@ -127,6 +135,37 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
       .then((data) => setProfileCrea(data?.profile?.crea ?? null))
       .catch(() => setProfileCrea(null));
   }, []);
+
+  useEffect(() => {
+    fetchAuthed(`/api/inspections/${params.id}/previous`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setPreviousInspection(data?.previous ?? null))
+      .catch(() => setPreviousInspection(null));
+  }, [params.id]);
+
+  async function handleCopyAnomalies() {
+    if (!previousInspection) return;
+    setCopyingAnomalies(true);
+    setError(null);
+
+    const res = await fetchAuthed(`/api/inspections/${params.id}/copy-anomalies`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fromInspectionId: previousInspection.id }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      if (res.status === 401) setSessionExpired(true);
+      setError(res.status === 401 ? SESSION_EXPIRED_MESSAGE : data.error ?? "Falha ao copiar anomalias.");
+      setCopyingAnomalies(false);
+      return;
+    }
+
+    setCopyingAnomalies(false);
+    setReinspectionDismissed(true);
+    loadAnomalies();
+  }
 
   useEffect(() => {
     if (!query || (selected && selected.description === query)) {
@@ -373,6 +412,62 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
           <Link href="/login" style={{ color: colors.erro, fontWeight: 700, whiteSpace: "nowrap" }}>
             Fazer login
           </Link>
+        </div>
+      )}
+
+      {!loadingList && !sessionExpired && anomalies.length === 0 && previousInspection && !reinspectionDismissed && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: "12px 14px",
+            borderRadius: 10,
+            background: colors.azulTint,
+            color: colors.azulEscuro,
+            fontSize: 13,
+            marginBottom: 20,
+            flexWrap: "wrap",
+          }}
+        >
+          <span>
+            Essa edificação já teve uma vistoria em {new Date(previousInspection.createdAt).toLocaleDateString("pt-BR")},
+            com {previousInspection.anomaliesCount} anomalia(s). Quer copiar como ponto de partida da reinspeção?
+          </span>
+          <div style={{ display: "flex", gap: 10, whiteSpace: "nowrap" }}>
+            <button
+              type="button"
+              onClick={handleCopyAnomalies}
+              disabled={copyingAnomalies}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                color: colors.azulEscuro,
+                fontWeight: 700,
+                cursor: copyingAnomalies ? "default" : "pointer",
+                textDecoration: "underline",
+              }}
+            >
+              {copyingAnomalies ? "Copiando…" : "Copiar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setReinspectionDismissed(true)}
+              disabled={copyingAnomalies}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                color: colors.azulEscuro,
+                opacity: 0.7,
+                cursor: copyingAnomalies ? "default" : "pointer",
+              }}
+            >
+              Ignorar
+            </button>
+          </div>
         </div>
       )}
 
