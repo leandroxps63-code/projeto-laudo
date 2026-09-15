@@ -90,6 +90,9 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
   const [manualLinkReportId, setManualLinkReportId] = useState<string | null>(null);
   const [togglingShareId, setTogglingShareId] = useState<string | null>(null);
 
+  const [inspectionType, setInspectionType] = useState<string | null>(null);
+  const [savingType, setSavingType] = useState(false);
+
   const [previousInspection, setPreviousInspection] = useState<{
     id: string;
     createdAt: string;
@@ -135,6 +138,25 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
       .then((data) => setProfileCrea(data?.profile?.crea ?? null))
       .catch(() => setProfileCrea(null));
   }, []);
+
+  useEffect(() => {
+    fetchAuthed(`/api/inspections/${params.id}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setInspectionType(data?.inspection?.inspection_type ?? null))
+      .catch(() => setInspectionType(null));
+  }, [params.id]);
+
+  async function handleChangeInspectionType(newType: string) {
+    setSavingType(true);
+    const res = await fetchAuthed(`/api/inspections/${params.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inspectionType: newType }),
+    });
+    if (res.ok) setInspectionType(newType);
+    if (res.status === 401) setSessionExpired(true);
+    setSavingType(false);
+  }
 
   useEffect(() => {
     fetchAuthed(`/api/inspections/${params.id}/previous`)
@@ -389,9 +411,33 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
 
   return (
     <main style={{ maxWidth: 640, margin: "40px auto", padding: "0 20px" }}>
-      <h1 style={{ ...headingStyle, fontSize: "1.2rem", marginBottom: 20 }}>
+      <h1 style={{ ...headingStyle, fontSize: "1.2rem", marginBottom: 6 }}>
         Anomalias da vistoria
       </h1>
+
+      {inspectionType && (
+        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+          <span style={labelStyle}>Nível</span>
+          <select
+            value={inspectionType}
+            disabled={savingType}
+            onChange={(e) => handleChangeInspectionType(e.target.value)}
+            style={{
+              border: `1.3px solid ${colors.pedra}`,
+              borderRadius: 7,
+              padding: "4px 8px",
+              fontSize: 12.5,
+              color: colors.tinta,
+              background: colors.superficie,
+              cursor: savingType ? "default" : "pointer",
+            }}
+          >
+            <option value="NBR 16.747 — Nível I">NBR 16.747 — Nível I</option>
+            <option value="NBR 16.747 — Nível II">NBR 16.747 — Nível II</option>
+            <option value="NBR 16.747 — Nível III">NBR 16.747 — Nível III</option>
+          </select>
+        </label>
+      )}
 
       {sessionExpired && (
         <div
