@@ -19,6 +19,9 @@ export type ReportTemplateInput = {
   generatedAt: Date;
   inspectionType: string;
   clientName: string;
+  clientDocument: string | null;
+  clientAddress: string | null;
+  clientContact: string | null;
   buildingName: string;
   buildingAddress: string;
   buildingFloors: number | null;
@@ -130,6 +133,9 @@ export function buildReportHtml(input: ReportTemplateInput): string {
 
   <dl class="meta-grid">
     <dt>Cliente</dt><dd>${escapeHtml(input.clientName)}</dd>
+    <dt>CPF/CNPJ</dt><dd>${input.clientDocument ? escapeHtml(input.clientDocument) : "—"}</dd>
+    <dt>Endereço do cliente</dt><dd>${input.clientAddress ? escapeHtml(input.clientAddress) : "—"}</dd>
+    <dt>Contato</dt><dd>${input.clientContact ? escapeHtml(input.clientContact) : "—"}</dd>
     <dt>Edificação</dt><dd>${escapeHtml(input.buildingName)}</dd>
     <dt>Endereço</dt><dd>${escapeHtml(input.buildingAddress)}</dd>
     <dt>Pavimentos</dt><dd>${input.buildingFloors ?? "—"}</dd>

@@ -3,6 +3,8 @@ import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase-server";
 import { renderHtmlToPdf } from "@/lib/pdf";
 import { buildReportHtml, type ReportAnomalyInput } from "@/lib/reportTemplate";
+import { formatCpf } from "@/lib/cpf";
+import { formatCnpj } from "@/lib/cnpj";
 import { logError } from "@/lib/errorLog";
 import { SEVERITY_LABELS, type Severity } from "@projeto-laudo/shared";
 
@@ -147,7 +149,9 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
   const { data: inspection, error: inspectionError } = await supabase
     .from("inspections")
-    .select("inspection_type, responsible_id, buildings(name, address, floors, clients(name))")
+    .select(
+      "inspection_type, responsible_id, buildings(name, address, floors, clients(name, person_type, document, contact_name, contact_role, street, number, complement, district, city, state, zip_code))"
+    )
     .eq("id", params.id)
     .single();
 
@@ -160,6 +164,29 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
   const building = Array.isArray(inspection.buildings) ? inspection.buildings[0] : inspection.buildings;
   const client = building ? (Array.isArray(building.clients) ? building.clients[0] : building.clients) : null;
+
+  const clientDocument = client?.document
+    ? client.person_type === "pj"
+      ? formatCnpj(client.document)
+      : formatCpf(client.document)
+    : null;
+
+  const clientAddress =
+    [
+      client?.street && client?.number
+        ? `${client.street}, ${client.number}`
+        : client?.street ?? undefined,
+      client?.complement ?? undefined,
+      client?.district ?? undefined,
+      client?.city && client?.state ? `${client.city}/${client.state}` : client?.city ?? client?.state ?? undefined,
+      client?.zip_code ? `CEP ${client.zip_code.replace(/(\d{5})(\d{3})/, "$1-$2")}` : undefined,
+    ]
+      .filter(Boolean)
+      .join(" — ") || null;
+
+  const clientContact = client?.contact_name
+    ? [client.contact_name, client.contact_role].filter(Boolean).join(" — ")
+    : null;
 
   const { data: responsible } = await supabase
     .from("profiles")
@@ -234,6 +261,9 @@ export async function POST(request: Request, { params }: { params: { id: string 
       generatedAt: new Date(),
       inspectionType: inspection.inspection_type,
       clientName: client?.name ?? "Cliente não identificado",
+      clientDocument,
+      clientAddress,
+      clientContact,
       buildingName: building?.name ?? "Edificação não identificada",
       buildingAddress: building?.address ?? "—",
       buildingFloors: building?.floors ?? null,
