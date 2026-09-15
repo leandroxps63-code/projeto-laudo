@@ -11,8 +11,16 @@ import { colors } from "@/lib/theme";
  * (fundo branco, "G" colorido, texto neutro) — não a paleta do produto,
  * de propósito, é convenção que a pessoa já reconhece.
  */
-export default function GoogleButton({ disabled }: { disabled?: boolean }) {
+export default function GoogleButton({
+  disabled,
+  beforeClick,
+}: {
+  disabled?: boolean;
+  /** Roda antes do redirect pro Google — retornar false cancela o clique (ex: falta aceitar a política de privacidade). */
+  beforeClick?: () => boolean;
+}) {
   async function handleClick() {
+    if (beforeClick && !beforeClick()) return;
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",

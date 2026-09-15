@@ -200,11 +200,6 @@ export default function CadastroPage() {
             </span>
           </label>
 
-          {error && (
-            <p role="alert" style={errorTextStyle}>
-              {error}
-            </p>
-          )}
           <button
             type="submit"
             disabled={loading}
@@ -214,12 +209,27 @@ export default function CadastroPage() {
           </button>
         </form>
 
+        {error && (
+          <p role="alert" style={{ ...errorTextStyle, textAlign: "center", marginTop: 14 }}>
+            {error}
+          </p>
+        )}
+
         <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0" }}>
           <span style={{ flex: 1, height: 1, background: colors.pedra }} />
           <span style={{ fontSize: 11.5, color: colors.tintaFaint }}>ou</span>
           <span style={{ flex: 1, height: 1, background: colors.pedra }} />
         </div>
-        <GoogleButton disabled={loading || !consent} />
+        <GoogleButton
+          disabled={loading}
+          beforeClick={() => {
+            if (!consent) {
+              setError("Confirme que você leu a política de privacidade pra continuar.");
+              return false;
+            }
+            return true;
+          }}
+        />
 
         <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: colors.tintaMuted }}>
           Já tem conta?{" "}
