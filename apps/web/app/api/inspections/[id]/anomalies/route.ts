@@ -90,29 +90,47 @@ export async function POST(request: Request, { params }: { params: { id: string 
     );
   }
 
-  // Código sequencial por vistoria (AN-001, AN-002, ...) — mesmo padrão do template do laudo.
-  const { count } = await supabase
-    .from("anomalies")
-    .select("id", { count: "exact", head: true })
-    .eq("inspection_id", params.id);
+  // Código sequencial por vistoria (AN-001, AN-002, ...) — mesmo padrão do
+  // template do laudo. O count() é só o palpite inicial: se duas pessoas da
+  // equipe registrarem anomalia na mesma vistoria ao mesmo tempo, as duas
+  // podem ler a mesma contagem — a unique constraint (inspection_id, code)
+  // recusa a segunda com 23505, e ela tenta de novo com o próximo número.
+  let data: Record<string, unknown> | null = null;
+  let error: { code?: string; message: string } | null = null;
 
-  const code = `AN-${String((count ?? 0) + 1).padStart(3, "0")}`;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { count } = await supabase
+      .from("anomalies")
+      .select("id", { count: "exact", head: true })
+      .eq("inspection_id", params.id);
 
-  const { data, error } = await supabase
-    .from("anomalies")
-    .insert({
-      inspection_id: params.id,
-      catalog_id: body.catalogId ?? null,
-      environment: body.environment,
-      system_type: body.systemType,
-      description,
-      treatment_recommendation: treatment,
-      severity,
-      code,
-      created_by: user.id,
-    })
-    .select()
-    .single();
+    const code = `AN-${String((count ?? 0) + 1 + attempt).padStart(3, "0")}`;
+
+    const result = await supabase
+      .from("anomalies")
+      .insert({
+        inspection_id: params.id,
+        catalog_id: body.catalogId ?? null,
+        environment: body.environment,
+        system_type: body.systemType,
+        description,
+        treatment_recommendation: treatment,
+        severity,
+        code,
+        created_by: user.id,
+      })
+      .select()
+      .single();
+
+    if (!result.error) {
+      data = result.data;
+      error = null;
+      break;
+    }
+
+    error = result.error;
+    if (result.error.code !== "23505") break;
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
