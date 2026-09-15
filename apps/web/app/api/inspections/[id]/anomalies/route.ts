@@ -115,5 +115,14 @@ export async function POST(request: Request, { params }: { params: { id: string 
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // A primeira anomalia tira a vistoria de "rascunho" — reflete que o
+  // trabalho de campo já começou (RF-15, status usado no painel/dashboard).
+  await supabase
+    .from("inspections")
+    .update({ status: "em_vistoria" })
+    .eq("id", params.id)
+    .eq("status", "rascunho");
+
   return NextResponse.json({ anomaly: data }, { status: 201 });
 }

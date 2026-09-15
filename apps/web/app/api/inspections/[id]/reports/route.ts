@@ -299,6 +299,11 @@ export async function POST(request: Request, { params }: { params: { id: string 
   if (updates.excel_url || updates.pdf_url) {
     updates.status = "gerado";
     updates.generated_at = new Date().toISOString();
+
+    // Primeiro laudo gerado marca a vistoria como concluída — reflete que
+    // o trabalho de campo terminou, mesmo que o laudo ainda seja rascunho/
+    // reemitido depois (RF-14 permite nova versão sem voltar o status).
+    await supabase.from("inspections").update({ status: "concluida" }).eq("id", params.id);
   }
 
   const { data: updated, error: updateError } = await supabase
