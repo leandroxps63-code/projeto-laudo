@@ -3,21 +3,29 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { fetchAuthed } from "@/lib/fetchAuthed";
-import { headingStyle, labelStyle, inputStyle, primaryButtonStyle, errorTextStyle } from "@/lib/theme";
+import { headingStyle } from "@/lib/theme";
+import ClienteForm, {
+  EMPTY_CLIENT_FORM,
+  clientFormToBody,
+  validateClientDocumentClientSide,
+} from "../ClienteForm";
 
 /** Novo cliente — cadastro avulso, fora do fluxo "Nova vistoria". */
 export default function NovoClientePage() {
   const router = useRouter();
-  const [form, setForm] = useState({ name: "", email: "", phone: "" });
+  const [form, setForm] = useState(EMPTY_CLIENT_FORM);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function update(field: keyof typeof form, value: string) {
-    setForm((f) => ({ ...f, [field]: value }));
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+
+    const docError = validateClientDocumentClientSide(form);
+    if (docError) {
+      setError(docError);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -25,11 +33,7 @@ export default function NovoClientePage() {
       const res = await fetchAuthed("/api/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email || undefined,
-          phone: form.phone || undefined,
-        }),
+        body: JSON.stringify(clientFormToBody(form)),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Falha ao criar cliente.");
@@ -43,48 +47,16 @@ export default function NovoClientePage() {
   }
 
   return (
-    <main style={{ maxWidth: 420, margin: "48px auto", padding: "0 20px" }}>
+    <main style={{ maxWidth: 480, margin: "48px auto", padding: "0 20px 60px" }}>
       <h1 style={{ ...headingStyle, fontSize: "1.2rem", marginBottom: 20 }}>Novo cliente</h1>
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <Field label="Nome" value={form.name} onChange={(v) => update("name", v)} required />
-        <Field label="E-mail (opcional)" value={form.email} onChange={(v) => update("email", v)} type="email" />
-        <Field label="Telefone (opcional)" value={form.phone} onChange={(v) => update("phone", v)} />
-        {error && <p style={errorTextStyle}>{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ ...primaryButtonStyle, opacity: loading ? 0.7 : 1, cursor: loading ? "default" : "pointer" }}
-        >
-          {loading ? "Salvando…" : "Criar cliente"}
-        </button>
-      </form>
-    </main>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  type = "text",
-  required = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-  required?: boolean;
-}) {
-  return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      <span style={labelStyle}>{label}</span>
-      <input
-        type={type}
-        required={required}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={inputStyle}
+      <ClienteForm
+        form={form}
+        onChange={setForm}
+        onSubmit={handleSubmit}
+        loading={loading}
+        error={error}
+        submitLabel="Criar cliente"
       />
-    </label>
+    </main>
   );
 }

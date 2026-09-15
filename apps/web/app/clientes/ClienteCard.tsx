@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { fetchAuthed, SESSION_EXPIRED_MESSAGE } from "@/lib/fetchAuthed";
 import { colors, cardStyle, errorTextStyle } from "@/lib/theme";
+import { formatCpf } from "@/lib/cpf";
+import { formatCnpj } from "@/lib/cnpj";
 
 type Building = {
   id: string;
@@ -18,8 +20,23 @@ type Client = {
   name: string;
   email: string | null;
   phone: string | null;
+  person_type: string | null;
+  document: string | null;
+  contact_name: string | null;
+  contact_role: string | null;
+  city: string | null;
+  state: string | null;
   buildings: Building[];
 };
+
+function clientAddressLine(client: Client): string | null {
+  return [client.city, client.state].filter(Boolean).join("/") || null;
+}
+
+function clientDocumentLine(client: Client): string | null {
+  if (!client.document) return null;
+  return client.person_type === "pj" ? formatCnpj(client.document) : formatCpf(client.document);
+}
 
 type PendingDelete =
   | { kind: "client"; id: string; label: string }
@@ -87,10 +104,20 @@ export default function ClienteCard({ client }: { client: Client }) {
         }}
       >
         <div>
-          <div style={{ fontWeight: 700, fontSize: "0.95rem", color: colors.tinta }}>{client.name}</div>
-          {(client.email || client.phone) && (
+          <div style={{ fontWeight: 700, fontSize: "0.95rem", color: colors.tinta }}>
+            {client.name}
+            {clientDocumentLine(client) && (
+              <span style={{ fontWeight: 500, color: colors.tintaFaint }}> · {clientDocumentLine(client)}</span>
+            )}
+          </div>
+          {(client.email || client.phone || clientAddressLine(client)) && (
             <div style={{ fontSize: "0.78rem", color: colors.tintaMuted }}>
-              {[client.email, client.phone].filter(Boolean).join(" · ")}
+              {[client.email, client.phone, clientAddressLine(client)].filter(Boolean).join(" · ")}
+            </div>
+          )}
+          {(client.contact_name || client.contact_role) && (
+            <div style={{ fontSize: "0.78rem", color: colors.tintaFaint }}>
+              Contato: {[client.contact_name, client.contact_role].filter(Boolean).join(" — ")}
             </div>
           )}
         </div>
