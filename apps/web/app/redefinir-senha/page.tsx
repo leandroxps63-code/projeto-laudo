@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
-import GoogleButton from "../components/GoogleButton";
 import {
   colors,
   fontMono,
@@ -16,36 +15,35 @@ import {
 } from "@/lib/theme";
 
 /**
- * Login real via Supabase Auth (e-mail + senha).
- * Telas de referência: protótipo clicável (Notion do projeto), tela "s-login".
+ * Definir nova senha — chegada aqui só acontece depois de /auth/callback
+ * trocar o code do link de recuperação por uma sessão de verdade (mesmo
+ * mecanismo do login com Google), então já existe sessão ativa quando esta
+ * tela carrega.
  */
-export default function LoginPage() {
+export default function RedefinirSenhaPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const supabase = createClient();
 
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const erro = searchParams.get("erro");
-    if (erro) setError(erro);
-  }, [searchParams]);
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      setError("As senhas não são iguais.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      // Mostra a mensagem real do Supabase em vez de sempre dizer "senha
-      // inválida" — um erro genérico esconde causas como chave de API ou
-      // projeto errado por trás do mesmo texto de "senha errada".
       setError(`${error.message} (${error.status ?? error.name})`);
       setLoading(false);
       return;
@@ -79,35 +77,20 @@ export default function LoginPage() {
           >
             NBR 16.747 · Inspeção Predial
           </span>
-          <h1 style={{ ...headingStyle, fontSize: "1.5rem", marginTop: 8 }}>Entrar</h1>
+          <h1 style={{ ...headingStyle, fontSize: "1.5rem", marginTop: 8 }}>Nova senha</h1>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          style={{
-            ...cardStyle,
-            padding: 24,
-            display: "flex",
-            flexDirection: "column",
-            gap: 14,
-          }}
+          style={{ ...cardStyle, padding: 24, display: "flex", flexDirection: "column", gap: 14 }}
         >
           <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={labelStyle}>E-mail</span>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={inputStyle}
-            />
-          </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={labelStyle}>Senha</span>
+            <span style={labelStyle}>Nova senha</span>
             <div style={{ position: "relative", display: "flex" }}>
               <input
                 type={showPassword ? "text" : "password"}
                 required
+                minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={{ ...inputStyle, paddingRight: 60, width: "100%" }}
@@ -133,10 +116,21 @@ export default function LoginPage() {
                 {showPassword ? "Ocultar" : "Mostrar"}
               </button>
             </div>
-            <a href="/recuperar-senha" style={{ fontSize: 12, color: colors.azul, fontWeight: 700, alignSelf: "flex-end" }}>
-              Esqueci minha senha
-            </a>
+            <span style={{ fontSize: 11, color: colors.tintaFaint }}>Mínimo de 6 caracteres.</span>
           </label>
+
+          <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <span style={labelStyle}>Confirmar nova senha</span>
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={6}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              style={inputStyle}
+            />
+          </label>
+
           {error && (
             <p role="alert" style={errorTextStyle}>
               {error}
@@ -147,28 +141,9 @@ export default function LoginPage() {
             disabled={loading}
             style={{ ...primaryButtonStyle, opacity: loading ? 0.7 : 1, cursor: loading ? "default" : "pointer" }}
           >
-            {loading ? "Entrando…" : "Entrar"}
+            {loading ? "Salvando…" : "Salvar nova senha"}
           </button>
         </form>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0" }}>
-          <span style={{ flex: 1, height: 1, background: colors.pedra }} />
-          <span style={{ fontSize: 11.5, color: colors.tintaFaint }}>ou</span>
-          <span style={{ flex: 1, height: 1, background: colors.pedra }} />
-        </div>
-        <GoogleButton disabled={loading} />
-
-        <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: colors.tintaMuted }}>
-          Não tem conta?{" "}
-          <a href="/cadastro" style={{ color: colors.azul, fontWeight: 700 }}>
-            Cadastre-se
-          </a>
-        </p>
-        <p style={{ textAlign: "center", marginTop: 10 }}>
-          <a href="/privacidade" style={{ fontSize: 12, color: colors.tintaFaint }}>
-            Política de privacidade
-          </a>
-        </p>
       </div>
     </main>
   );
