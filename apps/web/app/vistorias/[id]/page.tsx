@@ -69,8 +69,8 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
   const [selected, setSelected] = useState<CatalogEntry | null>(null);
   const [treatment, setTreatment] = useState("");
   const [severity, setSeverity] = useState<Severity>("media");
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [rawPhoto, setRawPhoto] = useState<File | null>(null);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [pendingPhotoQueue, setPendingPhotoQueue] = useState<File[]>([]);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -180,22 +180,27 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
       return;
     }
 
-    if (photo) {
+    let photoFailures = 0;
+    let photoSessionExpired = false;
+    for (const file of photos) {
       const photoForm = new FormData();
-      photoForm.append("file", photo);
+      photoForm.append("file", file);
       const photoRes = await fetchAuthed(
         `/api/inspections/${params.id}/anomalies/${data.anomaly.id}/photos`,
         { method: "POST", body: photoForm }
       );
       if (!photoRes.ok) {
-        if (photoRes.status === 401) {
-          setSessionExpired(true);
-          setError(`Anomalia salva, mas a foto falhou: ${SESSION_EXPIRED_MESSAGE}`);
-        } else {
-          const photoData = await photoRes.json().catch(() => ({}));
-          setError(`Anomalia salva, mas a foto falhou: ${photoData.error ?? "erro desconhecido."}`);
-        }
+        photoFailures++;
+        if (photoRes.status === 401) photoSessionExpired = true;
       }
+    }
+    if (photoSessionExpired) setSessionExpired(true);
+    if (photoFailures > 0) {
+      setError(
+        photoSessionExpired
+          ? `Anomalia salva, mas as fotos falharam: ${SESSION_EXPIRED_MESSAGE}`
+          : `Anomalia salva, mas ${photoFailures} de ${photos.length} foto(s) falharam ao enviar.`
+      );
     }
 
     setEnvironment("");
@@ -204,8 +209,8 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
     setSelected(null);
     setTreatment("");
     setSeverity("media");
-    setPhoto(null);
-    setRawPhoto(null);
+    setPhotos([]);
+    setPendingPhotoQueue([]);
     setFileInputKey((k) => k + 1);
     setSaving(false);
     loadAnomalies();
@@ -514,18 +519,29 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
 
           {!editingId && (
             <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              <span style={labelStyle}>Foto (opcional)</span>
+              <span style={labelStyle}>Fotos (opcional)</span>
               <input
                 key={fileInputKey}
                 type="file"
                 accept="image/*"
-                onChange={(e) => setRawPhoto(e.target.files?.[0] ?? null)}
+                multiple
+                onChange={(e) => {
+                  const files = e.target.files ? Array.from(e.target.files) : [];
+                  if (files.length > 0) setPendingPhotoQueue((q) => [...q, ...files]);
+                }}
                 style={{ fontSize: 12.5 }}
               />
-              {photo && (
-                <span style={{ fontSize: 11.5, color: "#2f7d5c" }}>
-                  Foto pronta pra envio{photo !== rawPhoto ? " (com marcação)" : ""}.
+              {pendingPhotoQueue.length > 0 && (
+                <span style={{ fontSize: 11.5, color: colors.tintaMuted }}>
+                  Marcando foto 1 de {pendingPhotoQueue.length}…
                 </span>
+              )}
+              {photos.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+                  {photos.map((file, i) => (
+                    <PhotoThumb key={i} file={file} onRemove={() => setPhotos((p) => p.filter((_, j) => j !== i))} />
+                  ))}
+                </div>
               )}
             </label>
           )}
@@ -755,9 +771,12 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
       </div>
 
       <PhotoMarkupModal
-        file={rawPhoto}
-        onConfirm={(markedFile) => setPhoto(markedFile)}
-        onClose={() => setRawPhoto(null)}
+        file={pendingPhotoQueue[0] ?? null}
+        onConfirm={(markedFile) => {
+          setPhotos((p) => [...p, markedFile]);
+          setPendingPhotoQueue((q) => q.slice(1));
+        }}
+        onClose={() => setPendingPhotoQueue((q) => q.slice(1))}
       />
 
       {pendingDeleteId && (
@@ -831,6 +850,53 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
         </div>
       )}
     </main>
+  );
+}
+
+function PhotoThumb({ file, onRemove }: { file: File; onRemove: () => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  return (
+    <div style={{ position: "relative", width: 56, height: 56 }}>
+      {url && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={url}
+          alt=""
+          style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 6, border: `1px solid ${colors.pedra}` }}
+        />
+      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label="Remover foto"
+        style={{
+          position: "absolute",
+          top: -6,
+          right: -6,
+          width: 18,
+          height: 18,
+          borderRadius: "50%",
+          border: "none",
+          background: colors.erro,
+          color: "#fff",
+          fontSize: 11,
+          fontWeight: 700,
+          lineHeight: "18px",
+          textAlign: "center",
+          padding: 0,
+          cursor: "pointer",
+        }}
+      >
+        ×
+      </button>
+    </div>
   );
 }
 
