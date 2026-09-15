@@ -257,6 +257,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          account_id: string
           complement: string | null
           contact_name: string | null
           contact_role: string | null
@@ -277,6 +278,7 @@ export type Database = {
           zip_code: string | null
         }
         Insert: {
+          account_id?: string
           complement?: string | null
           contact_name?: string | null
           contact_role?: string | null
@@ -297,6 +299,7 @@ export type Database = {
           zip_code?: string | null
         }
         Update: {
+          account_id?: string
           complement?: string | null
           contact_name?: string | null
           contact_role?: string | null
@@ -455,6 +458,7 @@ export type Database = {
           id: string
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
+          team_owner_id: string | null
         }
         Insert: {
           birth_date?: string | null
@@ -465,6 +469,7 @@ export type Database = {
           id: string
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          team_owner_id?: string | null
         }
         Update: {
           birth_date?: string | null
@@ -475,6 +480,7 @@ export type Database = {
           id?: string
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          team_owner_id?: string | null
         }
         Relationships: []
       }
