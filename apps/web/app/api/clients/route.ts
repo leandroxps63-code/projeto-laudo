@@ -5,7 +5,9 @@ import { CLIENT_SELECT_COLUMNS, validateClientDocument } from "@/lib/clients";
 
 /**
  * Clientes (contratantes do laudo — construtora, condomínio, pessoa física).
- * GET  /api/clients   -> lista os clientes criados pelo usuário logado
+ * GET  /api/clients   -> lista os clientes criados pelo usuário logado, com
+ *   as edificações de cada um (usado pra reaproveitar cliente ao iniciar
+ *   vistoria em vez de duplicar — ver apps/web/app/vistorias/nova/page.tsx)
  * POST /api/clients    -> cria um cliente novo
  *   body: { name, email?, phone?, personType?, document?, contactName?,
  *            contactRole?, zipCode?, street?, number?, complement?,
@@ -26,7 +28,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("clients")
-    .select(CLIENT_SELECT_COLUMNS)
+    .select(`${CLIENT_SELECT_COLUMNS}, buildings(id, name, address, floors)`)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
