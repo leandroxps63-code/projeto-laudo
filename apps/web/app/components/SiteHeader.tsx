@@ -8,6 +8,7 @@ import { colors, fontDisplay, fontBody } from "@/lib/theme";
 const PUBLIC_PATHS = [
   "/login",
   "/cadastro",
+  "/recuperar-senha",
   "/laudos/compartilhado",
   "/privacidade",
   "/funcionalidades",
