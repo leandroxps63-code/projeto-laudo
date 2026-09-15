@@ -74,6 +74,10 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
   const [fileInputKey, setFileInputKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [reportMessage, setReportMessage] = useState<string | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
@@ -207,6 +211,90 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
     loadAnomalies();
   }
 
+  function startEdit(a: Anomaly) {
+    setEditingId(a.id);
+    setEditingCode(a.code);
+    setEnvironment(a.environment);
+    setSystemType(a.system_type);
+    setSelected(null);
+    setQuery(a.description);
+    setTreatment(a.treatment_recommendation);
+    setSeverity(a.severity);
+    setError(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditingCode(null);
+    setEnvironment("");
+    setSystemType("");
+    setQuery("");
+    setSelected(null);
+    setTreatment("");
+    setSeverity("media");
+    setError(null);
+  }
+
+  async function handleUpdateAnomaly() {
+    if (!editingId) return;
+    if (!environment || !systemType || !query || !treatment) {
+      setError(
+        "Preencha ambiente, sistema construtivo, a descrição da anomalia e o tratamento recomendado."
+      );
+      return;
+    }
+    setSaving(true);
+    setError(null);
+
+    const res = await fetchAuthed(`/api/inspections/${params.id}/anomalies/${editingId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        environment,
+        systemType,
+        description: query,
+        treatmentRecommendation: treatment,
+        severity,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      if (res.status === 401) setSessionExpired(true);
+      setError(res.status === 401 ? SESSION_EXPIRED_MESSAGE : data.error ?? "Falha ao salvar a correção.");
+      setSaving(false);
+      return;
+    }
+
+    setSaving(false);
+    cancelEdit();
+    loadAnomalies();
+  }
+
+  async function handleDeleteAnomaly() {
+    if (!pendingDeleteId) return;
+    setDeletingId(pendingDeleteId);
+    setError(null);
+
+    const res = await fetchAuthed(`/api/inspections/${params.id}/anomalies/${pendingDeleteId}`, {
+      method: "DELETE",
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      if (res.status === 401) setSessionExpired(true);
+      setError(res.status === 401 ? SESSION_EXPIRED_MESSAGE : data.error ?? "Falha ao excluir.");
+      setDeletingId(null);
+      setPendingDeleteId(null);
+      return;
+    }
+
+    if (editingId === pendingDeleteId) cancelEdit();
+    setDeletingId(null);
+    setPendingDeleteId(null);
+    loadAnomalies();
+  }
+
   async function handleGenerateReport() {
     setGeneratingReport(true);
     setReportMessage("Gerando…");
@@ -298,7 +386,9 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
                 padding: "10px 0",
                 display: "flex",
                 justifyContent: "space-between",
+                alignItems: "flex-start",
                 gap: 10,
+                opacity: editingId === a.id ? 0.6 : 1,
               }}
             >
               <div>
@@ -312,6 +402,38 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
                     <> · 📷 {a.anomaly_photos.length}</>
                   )}
                 </div>
+                <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                  <button
+                    type="button"
+                    onClick={() => startEdit(a)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      color: colors.azul,
+                      fontWeight: 700,
+                      fontSize: 11.5,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingDeleteId(a.id)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      color: colors.erro,
+                      fontWeight: 700,
+                      fontSize: 11.5,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Excluir
+                  </button>
+                </div>
               </div>
               <SeverityChip severity={a.severity} />
             </li>
@@ -321,7 +443,9 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
 
       {/* ---- formulário ---- */}
       <div style={{ ...cardStyle, padding: 16, marginBottom: 20 }}>
-        <h2 style={{ ...headingStyle, fontSize: "0.95rem", marginBottom: 12 }}>Nova anomalia</h2>
+        <h2 style={{ ...headingStyle, fontSize: "0.95rem", marginBottom: 12 }}>
+          {editingId ? `Editando ${editingCode ?? "anomalia"}` : "Nova anomalia"}
+        </h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <input
             placeholder="Ambiente (ex: Fachada norte — 3º pavimento)"
@@ -388,21 +512,23 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
             />
           </label>
 
-          <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={labelStyle}>Foto (opcional)</span>
-            <input
-              key={fileInputKey}
-              type="file"
-              accept="image/*"
-              onChange={(e) => setRawPhoto(e.target.files?.[0] ?? null)}
-              style={{ fontSize: 12.5 }}
-            />
-            {photo && (
-              <span style={{ fontSize: 11.5, color: "#2f7d5c" }}>
-                Foto pronta pra envio{photo !== rawPhoto ? " (com marcação)" : ""}.
-              </span>
-            )}
-          </label>
+          {!editingId && (
+            <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <span style={labelStyle}>Foto (opcional)</span>
+              <input
+                key={fileInputKey}
+                type="file"
+                accept="image/*"
+                onChange={(e) => setRawPhoto(e.target.files?.[0] ?? null)}
+                style={{ fontSize: 12.5 }}
+              />
+              {photo && (
+                <span style={{ fontSize: 11.5, color: "#2f7d5c" }}>
+                  Foto pronta pra envio{photo !== rawPhoto ? " (com marcação)" : ""}.
+                </span>
+              )}
+            </label>
+          )}
 
           <div style={{ display: "flex", gap: 6 }}>
             {(["baixa", "media", "alta", "critica"] as Severity[]).map((s) => (
@@ -429,22 +555,43 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
 
           {error && <p style={errorTextStyle}>{error}</p>}
 
-          <button
-            type="button"
-            onClick={handleAddAnomaly}
-            disabled={saving}
-            style={{
-              padding: 12,
-              borderRadius: 9,
-              border: "none",
-              background: colors.azul,
-              color: "#fff",
-              fontWeight: 700,
-              cursor: saving ? "default" : "pointer",
-            }}
-          >
-            {saving ? "Salvando…" : "Registrar anomalia"}
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              onClick={editingId ? handleUpdateAnomaly : handleAddAnomaly}
+              disabled={saving}
+              style={{
+                flex: 1,
+                padding: 12,
+                borderRadius: 9,
+                border: "none",
+                background: colors.azul,
+                color: "#fff",
+                fontWeight: 700,
+                cursor: saving ? "default" : "pointer",
+              }}
+            >
+              {saving ? "Salvando…" : editingId ? "Salvar correção" : "Registrar anomalia"}
+            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={cancelEdit}
+                disabled={saving}
+                style={{
+                  padding: 12,
+                  borderRadius: 9,
+                  border: `1.3px solid ${colors.pedra}`,
+                  background: colors.superficie,
+                  color: colors.tintaMuted,
+                  fontWeight: 700,
+                  cursor: saving ? "default" : "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -612,6 +759,77 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
         onConfirm={(markedFile) => setPhoto(markedFile)}
         onClose={() => setRawPhoto(null)}
       />
+
+      {pendingDeleteId && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(20,20,18,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
+        >
+          <div
+            style={{
+              background: colors.superficie,
+              borderRadius: 12,
+              padding: 22,
+              maxWidth: 360,
+              width: "90%",
+              boxShadow: "0 10px 30px rgba(20,31,34,0.18)",
+            }}
+          >
+            <p style={{ fontSize: "0.9rem", fontWeight: 700, marginBottom: 6, color: colors.tinta }}>
+              Excluir anomalia?
+            </p>
+            <p style={{ fontSize: "0.82rem", color: colors.tintaMuted, marginBottom: 18 }}>
+              Essa ação apaga o registro e as fotos anexadas. Não pode ser desfeita.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setPendingDeleteId(null)}
+                disabled={!!deletingId}
+                style={{
+                  padding: "9px 16px",
+                  borderRadius: 9,
+                  border: `1.3px solid ${colors.pedra}`,
+                  background: colors.superficie,
+                  fontWeight: 700,
+                  fontSize: "0.82rem",
+                  color: colors.tinta,
+                  cursor: deletingId ? "default" : "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAnomaly}
+                disabled={!!deletingId}
+                style={{
+                  padding: "9px 16px",
+                  borderRadius: 9,
+                  border: "none",
+                  background: colors.erro,
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: "0.82rem",
+                  cursor: deletingId ? "default" : "pointer",
+                  opacity: deletingId ? 0.7 : 1,
+                }}
+              >
+                {deletingId ? "Excluindo…" : "Excluir"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
