@@ -772,10 +772,7 @@ export default function VistoriaDetailPage({ params }: { params: { id: string } 
 
       <PhotoMarkupModal
         file={pendingPhotoQueue[0] ?? null}
-        onConfirm={(markedFile) => {
-          setPhotos((p) => [...p, markedFile]);
-          setPendingPhotoQueue((q) => q.slice(1));
-        }}
+        onConfirm={(markedFile) => setPhotos((p) => [...p, markedFile])}
         onClose={() => setPendingPhotoQueue((q) => q.slice(1))}
       />
 
