@@ -1,126 +1,678 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+} from "react";
 
 type Point = { x: number; y: number };
-const W = 1000;
-const H = 562.5;
-const colors = { ink: "#141f22", muted: "#56635f", blue: "#205e73", deep: "#0f2f3a", paper: "#f5f1e9", white: "#fff", line: "#d9d2c0", amber: "#d97b1f" };
-const distance = (a: Point, b: Point) => Math.hypot((a.x - b.x) * W, (a.y - b.y) * H);
-function areaOf(points: Point[]) {
-  return Math.abs(points.reduce((sum, p, i) => { const n = points[(i + 1) % points.length]; return sum + p.x * n.y - n.x * p.y; }, 0)) / 2;
+type Opening = {
+  kind: "porta" | "janela" | "abertura" | "incerto";
+  position: "esquerda" | "centro" | "direita" | "não identificável";
+  confidence: "alta" | "média" | "baixa";
+  description: string;
+};
+type PhotoAnalysis = { summary: string; openings: Opening[] };
+
+const PHOTO_WIDTH = 1200;
+const PHOTO_HEIGHT = 675;
+const palette = {
+  ink: "#141f22",
+  muted: "#56635f",
+  blue: "#205e73",
+  deep: "#0f2f3a",
+  paper: "#f5f1e9",
+  white: "#fff",
+  line: "#d9d2c0",
+  amber: "#d97b1f",
+};
+
+function pixelDistance(a: Point, b: Point) {
+  return Math.hypot(
+    (a.x - b.x) * PHOTO_WIDTH,
+    (a.y - b.y) * PHOTO_HEIGHT,
+  );
+}
+
+function polygonArea(points: Point[]) {
+  return Math.abs(
+    points.reduce((sum, point, index) => {
+      const next = points[(index + 1) % points.length];
+      return sum + point.x * next.y - next.x * point.y;
+    }, 0),
+  ) / 2;
+}
+
+function cropToPhoto(image: HTMLImageElement | HTMLVideoElement) {
+  const sourceWidth = "videoWidth" in image ? image.videoWidth : image.naturalWidth;
+  const sourceHeight = "videoHeight" in image ? image.videoHeight : image.naturalHeight;
+  const sourceRatio = sourceWidth / sourceHeight;
+  const targetRatio = PHOTO_WIDTH / PHOTO_HEIGHT;
+  let sx = 0;
+  let sy = 0;
+  let sw = sourceWidth;
+  let sh = sourceHeight;
+
+  if (sourceRatio > targetRatio) {
+    sw = sourceHeight * targetRatio;
+    sx = (sourceWidth - sw) / 2;
+  } else {
+    sh = sourceWidth / targetRatio;
+    sy = (sourceHeight - sh) / 2;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = PHOTO_WIDTH;
+  canvas.height = PHOTO_HEIGHT;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Não foi possível preparar a foto neste navegador.");
+
+  context.drawImage(image, sx, sy, sw, sh, 0, 0, PHOTO_WIDTH, PHOTO_HEIGHT);
+  return canvas.toDataURL("image/jpeg", 0.84);
 }
 
 export default function Scanner3DTestPage() {
-  const video = useRef<HTMLVideoElement>(null);
-  const stream = useRef<MediaStream | null>(null);
-  const [active, setActive] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const uploadRef = useRef<HTMLInputElement>(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [photo, setPhoto] = useState<string | null>(null);
   const [points, setPoints] = useState<Point[]>([]);
-  const [start, setStart] = useState(0);
-  const [end, setEnd] = useState(1);
-  const [meters, setMeters] = useState("2.00");
-  const [ready, setReady] = useState(false);
-  useEffect(() => () => stream.current?.getTracks().forEach((t) => t.stop()), []);
+  const [startPoint, setStartPoint] = useState(0);
+  const [endPoint, setEndPoint] = useState(1);
+  const [knownMeters, setKnownMeters] = useState("2.00");
+  const [measurementReady, setMeasurementReady] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<PhotoAnalysis | null>(null);
+
+  useEffect(
+    () => () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    },
+  );
 
   const scale = useMemo(() => {
-    const a = points[start], b = points[end], m = Number(meters.replace(",", "."));
-    if (!a || !b || a === b || !Number.isFinite(m) || m <= 0) return 0;
-    const px = distance(a, b);
-    return px ? m / px : 0;
-  }, [points, start, end, meters]);
-  const edges = useMemo(() => ready && scale ? points.map((p, i) => distance(p, points[(i + 1) % points.length]) * scale) : [], [ready, points, scale]);
-  const area = ready && scale && points.length >= 3 ? areaOf(points) * scale * scale : 0;
-  const plan = useMemo(() => {
-    if (!points.length) return "";
-    const xs = points.map((p) => p.x * W), ys = points.map((p) => p.y * H);
-    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-    const fit = Math.min(264 / Math.max(1, maxX - minX), 172 / Math.max(1, maxY - minY));
-    const ox = (320 - (maxX - minX) * fit) / 2, oy = (220 - (maxY - minY) * fit) / 2;
-    return points.map((p) => (ox + (p.x * W - minX) * fit) + "," + (oy + (p.y * H - minY) * fit)).join(" ");
-  }, [points]);
+    const first = points[startPoint];
+    const second = points[endPoint];
+    const meters = Number(knownMeters.replace(",", "."));
 
-  async function openCamera() {
-    setError("");
+    if (!first || !second || startPoint === endPoint || !Number.isFinite(meters) || meters <= 0) {
+      return 0;
+    }
+
+    const pixels = pixelDistance(first, second);
+    return pixels > 0 ? meters / pixels : 0;
+  }, [points, startPoint, endPoint, knownMeters]);
+
+  const sideLengths = useMemo(() => {
+    if (!measurementReady || !scale || points.length < 2) return [];
+    if (points.length === 2) return [pixelDistance(points[0], points[1]) * scale];
+    return points.map((point, index) =>
+      pixelDistance(point, points[(index + 1) % points.length]) * scale,
+    );
+  }, [measurementReady, points, scale]);
+
+  const area =
+    measurementReady && scale && points.length >= 3
+      ? polygonArea(points) * PHOTO_WIDTH * PHOTO_HEIGHT * scale * scale
+      : 0;
+
+  function stopCamera() {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setCameraActive(false);
+  }
+
+  async function startCamera() {
+    setCameraError("");
+    setNotice("");
+    setPhoto(null);
+    setPoints([]);
+    setAnalysis(null);
+    setMeasurementReady(false);
+
+    if (!window.isSecureContext) {
+      setCameraError("A câmera precisa de uma página HTTPS. Abra o endereço publicado do Projeto Laudo.");
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError(
+        "Este navegador não liberou acesso direto à câmera. Use “Tirar ou escolher foto” ou abra o site no Safari/Chrome.",
+      );
+      return;
+    }
+
     try {
-      const media = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" } } });
-      stream.current = media;
-      if (video.current) { video.current.srcObject = media; await video.current.play(); }
-      setActive(true);
-    } catch { setError("Não consegui abrir a câmera. Confira a permissão e tente em uma página HTTPS."); }
-  }
-  function closeCamera() { stream.current?.getTracks().forEach((t) => t.stop()); stream.current = null; if (video.current) video.current.srcObject = null; setActive(false); }
-  function mark(e: MouseEvent<HTMLDivElement>) {
-    if (!active || ready) return;
-    const r = e.currentTarget.getBoundingClientRect();
-    setPoints((p) => [...p, { x: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), y: Math.max(0, Math.min(1, (e.clientY - r.top) / r.height)) }]);
-  }
-  function demo() {
-    closeCamera(); setPoints([{ x: .24, y: .28 }, { x: .75, y: .25 }, { x: .81, y: .72 }, { x: .20, y: .74 }]);
-    setStart(0); setEnd(1); setMeters("4.20"); setReady(false); setMessage("Exemplo visual: pontos simulados, sem medição real.");
-  }
-  function calibrate() {
-    if (points.length < 3) { setMessage("Marque pelo menos três cantos do ambiente."); return; }
-    if (!scale) { setMessage("Escolha dois pontos diferentes e informe a distância medida com trena."); return; }
-    setReady(true); setMessage("Escala aplicada. Revise as medidas antes de usar qualquer dado.");
-  }
-  function reset() { closeCamera(); setPoints([]); setStart(0); setEnd(1); setReady(false); setError(""); setMessage(""); }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+      });
+      streamRef.current = stream;
 
-  const box: CSSProperties = { background: colors.white, border: "1px solid " + colors.line, borderRadius: 14, padding: 18, boxShadow: "0 5px 18px rgba(20,31,34,.05)" };
-  const button: CSSProperties = { border: 0, borderRadius: 9, padding: "10px 14px", background: colors.blue, color: colors.white, fontWeight: 800, cursor: "pointer" };
-  const field: CSSProperties = { width: "100%", border: "1px solid " + colors.line, borderRadius: 8, padding: 10, background: colors.white, color: colors.ink };
-  return <main style={{ minHeight: "calc(100vh - 58px)", background: colors.paper, color: colors.ink, padding: "30px clamp(16px,4vw,56px) 60px" }}>
-    <div style={{ maxWidth: 1240, margin: "0 auto" }}>
-      <p style={{ color: colors.muted, fontSize: 13 }}>Projeto Laudo / Laboratório</p>
-      <header style={{ display: "flex", flexWrap: "wrap", alignItems: "end", justifyContent: "space-between", gap: 16, marginBottom: 22 }}>
-        <div><span style={{ color: colors.blue, fontWeight: 800, fontSize: 11, letterSpacing: ".12em" }}>PROTÓTIPO EXPERIMENTAL</span><h1 style={{ margin: "8px 0", color: colors.deep, fontSize: "clamp(30px,4vw,46px)", letterSpacing: "-.03em" }}>Scanner de ambientes</h1><p style={{ maxWidth: 720, margin: 0, color: colors.muted, lineHeight: 1.6 }}>Marque os cantos pela câmera, calibre com uma distância real e veja uma planta baixa estimada. Nada é salvo no projeto.</p></div>
-        <strong style={{ background: "#f7e3cc", color: "#7f4a14", borderRadius: 99, padding: "8px 12px", fontSize: 12 }}>Somente para testes</strong>
-      </header>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "start", gap: 16 }}>
-        <section style={{ ...box, flex: "2 1 520px", padding: 0, overflow: "hidden" }} aria-label="Câmera e marcação">
-          <div onClick={mark} style={{ position: "relative", aspectRatio: "16 / 9", background: "#172529", overflow: "hidden", cursor: active && !ready ? "crosshair" : "default", touchAction: "manipulation" }}>
-            {active && <video ref={video} autoPlay muted playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
-            {!active && <div style={{ position: "absolute", inset: 0, display: "grid", placeContent: "center", gap: 9, textAlign: "center", padding: 24, color: "#f5f1e9" }}><b>A câmera aparece aqui</b><span style={{ maxWidth: 340, fontSize: 12, color: "#d4ddda" }}>Abra a câmera traseira ou carregue o exemplo visual.</span></div>}
-            <span style={{ position: "absolute", top: 12, left: 12, padding: "7px 10px", borderRadius: 99, color: "white", background: "#0a161bcc", fontSize: 11, fontWeight: 800 }}>{active ? "● CÂMERA ATIVA" : "○ AGUARDANDO CÂMERA"} · {points.length} pontos</span>
-            {points.map((p, i) => <span key={i} style={{ position: "absolute", left: (p.x * 100) + "%", top: (p.y * 100) + "%", transform: "translate(-50%,-50%)", display: "grid", placeItems: "center", width: 27, height: 27, borderRadius: 99, border: "2px solid white", background: colors.amber, color: colors.deep, fontWeight: 900, fontSize: 11 }}>{i + 1}</span>)}
-            <span style={{ position: "absolute", bottom: 12, left: 12, maxWidth: 360, padding: 9, borderRadius: 8, color: "white", background: "#0a161bcc", fontSize: 12 }}>{active ? "Toque nos cantos do piso, em sequência, para desenhar o contorno." : "A câmera não está transmitindo."}</span>
+      // O vídeo fica montado mesmo antes de ligar a câmera. Assim o ref existe
+      // quando o navegador entrega o stream, inclusive no Safari do iPhone.
+      if (!videoRef.current) throw new Error("O vídeo ainda não está pronto. Tente novamente.");
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      setCameraActive(true);
+    } catch (error) {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      setCameraActive(false);
+
+      const name = error instanceof DOMException ? error.name : "";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setCameraError("A permissão da câmera foi negada. Libere a câmera para este site nas configurações do navegador.");
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        setCameraError("Não encontrei uma câmera traseira disponível neste dispositivo.");
+      } else if (name === "NotReadableError" || name === "AbortError") {
+        setCameraError("A câmera está ocupada por outro aplicativo. Feche-o e tente de novo.");
+      } else {
+        setCameraError("Não consegui abrir a câmera neste navegador. Você ainda pode tirar ou escolher uma foto.");
+      }
+    }
+  }
+
+  function markPoint(event: MouseEvent<HTMLDivElement>) {
+    if ((!cameraActive && !photo) || measurementReady) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const nextPoint = {
+      x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
+      y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)),
+    };
+    setPoints((current) => [...current, nextPoint]);
+    setAnalysis(null);
+  }
+
+  function capturePhoto() {
+    if (!videoRef.current || !videoRef.current.videoWidth) {
+      setCameraError("A imagem da câmera ainda está carregando. Aguarde um instante e tente novamente.");
+      return;
+    }
+
+    try {
+      const captured = cropToPhoto(videoRef.current);
+      setPhoto(captured);
+      setPoints([]);
+      setStartPoint(0);
+      setEndPoint(1);
+      setMeasurementReady(false);
+      setAnalysis(null);
+      setNotice("Foto pronta. Marque os pontos sobre a imagem; ela permanece neste navegador até você sair.");
+      stopCamera();
+    } catch (error) {
+      setCameraError(error instanceof Error ? error.message : "Não consegui capturar a foto.");
+    }
+  }
+
+  function handlePhotoFile(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setCameraError("Escolha um arquivo de imagem.");
+      return;
+    }
+
+    const image = new Image();
+    image.onload = () => {
+      try {
+        setPhoto(cropToPhoto(image));
+        setPoints([]);
+        setStartPoint(0);
+        setEndPoint(1);
+        setMeasurementReady(false);
+        setAnalysis(null);
+        setCameraError("");
+        setNotice("Foto carregada. Marque os pontos sobre a imagem.");
+        stopCamera();
+      } catch (error) {
+        setCameraError(error instanceof Error ? error.message : "Não consegui abrir essa foto.");
+      }
+      URL.revokeObjectURL(image.src);
+    };
+    image.onerror = () => setCameraError("Não consegui abrir essa foto. Escolha outro arquivo.");
+    image.src = URL.createObjectURL(file);
+  }
+
+  function loadExample() {
+    stopCamera();
+    setPhoto(null);
+    setPoints([
+      { x: 0.24, y: 0.28 },
+      { x: 0.75, y: 0.25 },
+      { x: 0.81, y: 0.72 },
+      { x: 0.2, y: 0.74 },
+    ]);
+    setStartPoint(0);
+    setEndPoint(1);
+    setKnownMeters("4.20");
+    setMeasurementReady(false);
+    setAnalysis(null);
+    setNotice("Exemplo visual: os pontos são simulados e não representam uma leitura real.");
+  }
+
+  function reset() {
+    stopCamera();
+    setPhoto(null);
+    setPoints([]);
+    setStartPoint(0);
+    setEndPoint(1);
+    setMeasurementReady(false);
+    setCameraError("");
+    setNotice("");
+    setAnalysis(null);
+  }
+
+  function calibrate() {
+    if (points.length < 2) {
+      setNotice("Marque dois pontos diferentes na mesma parede.");
+      return;
+    }
+    if (!scale) {
+      setNotice("Informe uma distância real maior que zero entre os pontos escolhidos.");
+      return;
+    }
+    setMeasurementReady(true);
+    setNotice("Estimativa calculada com uma distância informada por você. Revise com trena ou medidor a laser.");
+  }
+
+  async function analyzePhoto() {
+    if (!photo) {
+      setNotice("Tire ou escolha uma foto antes de pedir a análise.");
+      return;
+    }
+
+    setAnalyzing(true);
+    setCameraError("");
+    setAnalysis(null);
+    try {
+      const response = await fetch("/api/scanner-3d/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: photo }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "A análise não foi concluída.");
+      setAnalysis(result.analysis as PhotoAnalysis);
+    } catch (error) {
+      setCameraError(error instanceof Error ? error.message : "Não consegui analisar essa foto.");
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
+  async function saveMarkedPhoto() {
+    if (!photo) {
+      setNotice("Tire ou escolha uma foto primeiro.");
+      return;
+    }
+
+    const image = new Image();
+    image.onload = async () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = PHOTO_WIDTH;
+      canvas.height = PHOTO_HEIGHT;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        setCameraError("Não consegui preparar a imagem para salvar.");
+        return;
+      }
+
+      context.drawImage(image, 0, 0, PHOTO_WIDTH, PHOTO_HEIGHT);
+      if (points.length > 1) {
+        context.strokeStyle = "#ffb348";
+        context.lineWidth = 5;
+        context.beginPath();
+        points.forEach((point, index) => {
+          const x = point.x * PHOTO_WIDTH;
+          const y = point.y * PHOTO_HEIGHT;
+          if (index === 0) context.moveTo(x, y);
+          else context.lineTo(x, y);
+        });
+        if (points.length >= 3) context.closePath();
+        context.stroke();
+      }
+
+      points.forEach((point, index) => {
+        const x = point.x * PHOTO_WIDTH;
+        const y = point.y * PHOTO_HEIGHT;
+        context.beginPath();
+        context.arc(x, y, 19, 0, Math.PI * 2);
+        context.fillStyle = palette.amber;
+        context.fill();
+        context.lineWidth = 4;
+        context.strokeStyle = "white";
+        context.stroke();
+        context.fillStyle = palette.deep;
+        context.font = "bold 22px sans-serif";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(String(index + 1), x, y);
+      });
+
+      if (measurementReady) {
+        context.fillStyle = "rgba(15,47,58,.88)";
+        context.fillRect(0, PHOTO_HEIGHT - 52, PHOTO_WIDTH, 52);
+        context.fillStyle = "white";
+        context.font = "bold 24px sans-serif";
+        context.textAlign = "left";
+        context.textBaseline = "middle";
+        context.fillText(
+          "Estimativa: " + area.toFixed(2) + " m² · conferir com medidor",
+          20,
+          PHOTO_HEIGHT - 26,
+        );
+      }
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setCameraError("Não consegui gerar a foto marcada.");
+          return;
+        }
+        const file = new File([blob], "projeto-laudo-medicao.jpg", { type: "image/jpeg" });
+        try {
+          if (navigator.share && navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], title: "Foto marcada — Projeto Laudo" });
+          } else {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = file.name;
+            link.click();
+            URL.revokeObjectURL(url);
+            setNotice("Foto marcada baixada para o dispositivo.");
+          }
+        } catch (error) {
+          if (!(error instanceof DOMException && error.name === "AbortError")) {
+            setCameraError("Não consegui salvar ou compartilhar a foto neste navegador.");
+          }
+        }
+      }, "image/jpeg", 0.92);
+    };
+    image.onerror = () => setCameraError("Não consegui abrir a foto para salvar.");
+    image.src = photo;
+  }
+
+  const card: CSSProperties = {
+    background: palette.white,
+    border: "1px solid " + palette.line,
+    borderRadius: 14,
+    padding: 18,
+    boxShadow: "0 5px 18px rgba(20,31,34,.05)",
+  };
+  const button: CSSProperties = {
+    border: 0,
+    borderRadius: 9,
+    padding: "10px 14px",
+    background: palette.blue,
+    color: palette.white,
+    fontWeight: 800,
+    cursor: "pointer",
+  };
+  const field: CSSProperties = {
+    width: "100%",
+    border: "1px solid " + palette.line,
+    borderRadius: 8,
+    padding: 10,
+    background: palette.white,
+    color: palette.ink,
+  };
+
+  return (
+    <main
+      style={{
+        minHeight: "calc(100vh - 58px)",
+        background: palette.paper,
+        color: palette.ink,
+        padding: "30px clamp(16px,4vw,56px) 60px",
+      }}
+    >
+      <div style={{ maxWidth: 1240, margin: "0 auto" }}>
+        <p style={{ color: palette.muted, fontSize: 13 }}>Projeto Laudo / Laboratório</p>
+        <header
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "end",
+            justifyContent: "space-between",
+            gap: 16,
+            marginBottom: 22,
+          }}
+        >
+          <div>
+            <span style={{ color: palette.blue, fontWeight: 800, fontSize: 11, letterSpacing: ".12em" }}>
+              PROTÓTIPO EXPERIMENTAL
+            </span>
+            <h1 style={{ margin: "8px 0", color: palette.deep, fontSize: "clamp(30px,4vw,46px)" }}>
+              Scanner de ambientes
+            </h1>
+            <p style={{ maxWidth: 760, margin: 0, color: palette.muted, lineHeight: 1.6 }}>
+              Fotografe uma parede, marque os pontos e salve a imagem anotada. A análise pode sugerir portas e janelas.
+            </p>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: 13, borderTop: "1px solid " + colors.line }}>
-            <button style={button} onClick={active ? closeCamera : openCamera}>{active ? "Parar câmera" : "Abrir câmera"}</button>
-            <button style={{ ...button, background: "white", color: colors.ink, border: "1px solid " + colors.line }} onClick={() => { setPoints((p) => p.slice(0, -1)); setReady(false); }}>Desfazer ponto</button>
-            <button style={{ ...button, background: "white", color: colors.ink, border: "1px solid " + colors.line }} onClick={reset}>Limpar</button>
-            <button style={{ ...button, background: "#fff8ee", color: "#805018", border: "1px solid #e7cda9" }} onClick={demo}>Carregar exemplo</button>
-          </div>
-        </section>
-        <aside style={{ flex: "1 1 290px", minWidth: 0, display: "grid", gap: 14 }}>
-          <section style={box}>
-            <h2 style={{ margin: "0 0 5px", color: colors.deep, fontSize: 18 }}>Calibrar leitura</h2>
-            <p style={{ margin: 0, color: colors.muted, fontSize: 12, lineHeight: 1.5 }}>Escolha dois pontos e informe a distância medida com trena. O protótipo usa uma escala única na imagem.</p>
-            <div style={{ display: "flex", gap: 9 }}>
-              <label style={{ flex: 1, color: colors.muted, fontSize: 12, fontWeight: 700 }}>Ponto inicial<select style={{ ...field, marginTop: 5 }} value={start} onChange={(e) => { setStart(Number(e.target.value)); setReady(false); }}>{points.map((_, i) => <option key={i} value={i}>Ponto {i + 1}</option>)}</select></label>
-              <label style={{ flex: 1, color: colors.muted, fontSize: 12, fontWeight: 700 }}>Ponto final<select style={{ ...field, marginTop: 5 }} value={end} onChange={(e) => { setEnd(Number(e.target.value)); setReady(false); }}>{points.map((_, i) => <option key={i} value={i}>Ponto {i + 1}</option>)}</select></label>
+          <strong style={{ background: "#f7e3cc", color: "#7f4a14", borderRadius: 99, padding: "8px 12px", fontSize: 12 }}>
+            Somente para testes
+          </strong>
+        </header>
+
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "start", gap: 16 }}>
+          <section style={{ ...card, flex: "2 1 520px", padding: 0, overflow: "hidden" }} aria-label="Câmera e marcação">
+            <div
+              onClick={markPoint}
+              style={{
+                position: "relative",
+                aspectRatio: "16 / 9",
+                background: "#172529",
+                overflow: "hidden",
+                cursor: (cameraActive || photo) && !measurementReady ? "crosshair" : "default",
+                touchAction: "manipulation",
+              }}
+            >
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                aria-label="Prévia da câmera"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  opacity: cameraActive ? 1 : 0,
+                }}
+              />
+              {!cameraActive && photo && (
+                <img
+                  src={photo}
+                  alt="Foto do ambiente para marcar e analisar"
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              )}
+              {!cameraActive && !photo && (
+                <div style={{ position: "absolute", inset: 0, display: "grid", placeContent: "center", gap: 9, textAlign: "center", padding: 24, color: palette.paper }}>
+                  <b>A câmera aparece aqui</b>
+                  <span style={{ maxWidth: 360, fontSize: 12, color: "#d4ddda" }}>
+                    Abra a câmera ou use o botão para tirar/escolher uma foto.
+                  </span>
+                </div>
+              )}
+              <span style={{ position: "absolute", top: 12, left: 12, padding: "7px 10px", borderRadius: 99, color: "white", background: "#0a161bcc", fontSize: 11, fontWeight: 800 }}>
+                {cameraActive ? "● CÂMERA ATIVA" : photo ? "● FOTO PRONTA" : "○ AGUARDANDO CÂMERA"} · {points.length} pontos
+              </span>
+              {points.map((point, index) => (
+                <span
+                  key={index}
+                  style={{
+                    position: "absolute",
+                    left: point.x * 100 + "%",
+                    top: point.y * 100 + "%",
+                    transform: "translate(-50%,-50%)",
+                    display: "grid",
+                    placeItems: "center",
+                    width: 28,
+                    height: 28,
+                    borderRadius: 99,
+                    border: "2px solid white",
+                    background: palette.amber,
+                    color: palette.deep,
+                    fontWeight: 900,
+                    fontSize: 11,
+                    pointerEvents: "none",
+                  }}
+                >
+                  {index + 1}
+                </span>
+              ))}
+              <span style={{ position: "absolute", bottom: 12, left: 12, maxWidth: 400, padding: 9, borderRadius: 8, color: "white", background: "#0a161bcc", fontSize: 12 }}>
+                {(cameraActive || photo) && !measurementReady
+                  ? "Marque dois pontos para uma distância ou contorne o piso com três ou mais pontos."
+                  : photo
+                    ? "Foto congelada: revise as marcações antes de salvar."
+                    : "A câmera não está transmitindo."}
+              </span>
             </div>
-            <label style={{ display: "block", marginTop: 12, color: colors.muted, fontSize: 12, fontWeight: 700 }}>Distância real entre pontos (m)<input style={{ ...field, marginTop: 5 }} type="number" min=".1" step=".01" value={meters} onChange={(e) => { setMeters(e.target.value); setReady(false); }} /></label>
-            <button style={{ ...button, width: "100%", marginTop: 12, background: "#2e755b" }} onClick={calibrate}>Gerar planta estimada</button>
-            {error && <p role="alert" style={{ color: "#a34435", fontSize: 12 }}>{error}</p>}{message && <p role="status" style={{ color: colors.blue, fontSize: 12 }}>{message}</p>}
-            <p style={{ margin: "12px 0 0", padding: 10, borderRadius: 8, background: "#f7e3cc", color: "#68441d", fontSize: 12, lineHeight: 1.5 }}><b>Precisão:</b> câmera comum não garante medidas 3D. Perspectiva, luz e movimento distorcem a escala; confira tudo com trena.</p>
+
+            <input
+              ref={uploadRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(event) => handlePhotoFile(event.target.files?.[0])}
+              style={{ display: "none" }}
+              aria-label="Tirar ou escolher foto do ambiente"
+            />
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: 13, borderTop: "1px solid " + palette.line }}>
+              <button style={button} onClick={cameraActive ? stopCamera : startCamera}>
+                {cameraActive ? "Parar câmera" : "Abrir câmera"}
+              </button>
+              {cameraActive && <button style={{ ...button, background: "#2e755b" }} onClick={capturePhoto}>Tirar foto</button>}
+              <button
+                style={{ ...button, background: "white", color: palette.ink, border: "1px solid " + palette.line }}
+                onClick={() => uploadRef.current?.click()}
+              >
+                Tirar ou escolher foto
+              </button>
+              <button
+                style={{ ...button, background: "white", color: palette.ink, border: "1px solid " + palette.line }}
+                onClick={() => { setPoints((current) => current.slice(0, -1)); setMeasurementReady(false); setAnalysis(null); }}
+              >
+                Desfazer ponto
+              </button>
+              <button
+                style={{ ...button, background: "white", color: palette.ink, border: "1px solid " + palette.line }}
+                onClick={reset}
+              >
+                Limpar
+              </button>
+              <button style={{ ...button, background: "#fff8ee", color: "#805018", border: "1px solid #e7cda9" }} onClick={loadExample}>
+                Carregar exemplo
+              </button>
+            </div>
           </section>
-          <section style={box}>
-            <h2 style={{ margin: "0 0 5px", color: colors.deep, fontSize: 18 }}>Planta baixa</h2>
-            <p style={{ margin: 0, color: colors.muted, fontSize: 12 }}>Contorno 2D aproximado dos pontos marcados.</p>
-            <div style={{ marginTop: 12, border: "1px solid " + colors.line, borderRadius: 10, background: "#fbfaf7", padding: 8 }}><svg viewBox="0 0 320 220" width="100%" role="img" aria-label="Prévia da planta estimada">
-              <defs><pattern id="grid" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M16 0H0V16" fill="none" stroke="#e7e1d4" strokeWidth=".7" /></pattern></defs><rect width="320" height="220" rx="8" fill="url(#grid)" />
-              {points.length >= 3 && <><polygon points={plan} fill="rgba(32,94,115,.12)" stroke={colors.blue} strokeWidth="3" strokeLinejoin="round" strokeDasharray={ready ? "0" : "7 5"} />{plan.split(" ").map((pair, i) => { const [x, y] = pair.split(",").map(Number); return <g key={i}><circle cx={x} cy={y} r="10" fill={colors.amber} stroke="white" strokeWidth="2" /><text x={x} y={y + 4} textAnchor="middle" fontSize="10" fontWeight="800" fill={colors.deep}>{i + 1}</text></g>; })}{ready && <text x="160" y="112" textAnchor="middle" fontSize="13" fontWeight="800" fill={colors.deep}>{area.toFixed(2)} m²*</text>}</>}
-              {points.length < 3 && <text x="160" y="112" textAnchor="middle" fill="#8b968f" fontSize="12">Marque ao menos 3 cantos</text>}
-            </svg></div>
-            {ready && <><p style={{ color: colors.deep, fontWeight: 900, fontSize: 20 }}>Área estimada: {area.toFixed(2)} m²*</p><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{edges.map((v, i) => <span key={i} style={{ padding: "6px 8px", borderRadius: 7, background: colors.paper, color: colors.muted, fontSize: 11 }}>Lado {i + 1}: <b>{v.toFixed(2)} m*</b></span>)}</div></>}
-            <p style={{ margin: "10px 0 0", color: "#8b968f", fontSize: 11, lineHeight: 1.5 }}>*Estimativa demonstrativa. Não usar como medida técnica final.</p>
-          </section>
-          <section style={{ ...box, background: "#edf3f4" }}><b style={{ color: colors.deep }}>Onde a IA ajuda</b><p style={{ margin: "6px 0 0", color: colors.muted, fontSize: 12, lineHeight: 1.5 }}>Pode sugerir paredes, portas e contornos. Não garante metragem: a geometria depende de sensores de profundidade, calibração e validação humana. Este teste não envia imagens à OpenAI; a API é cobrada separadamente do ChatGPT Plus.</p></section>
-        </aside>
+
+          <aside style={{ flex: "1 1 300px", minWidth: 0, display: "grid", gap: 14 }}>
+            <section style={card}>
+              <h2 style={{ margin: "0 0 5px", color: palette.deep, fontSize: 18 }}>Marcar e medir</h2>
+              <p style={{ margin: 0, color: palette.muted, fontSize: 12, lineHeight: 1.5 }}>
+                Marque dois pontos numa mesma parede e informe a medida feita com trena. O cálculo da foto é uma estimativa 2D; perspectiva da câmera pode alterar o resultado.
+              </p>
+              <div style={{ display: "flex", gap: 9, marginTop: 12 }}>
+                <label style={{ flex: 1, color: palette.muted, fontSize: 12, fontWeight: 700 }}>
+                  Ponto inicial
+                  <select style={{ ...field, marginTop: 5 }} value={startPoint} onChange={(event) => { setStartPoint(Number(event.target.value)); setMeasurementReady(false); }}>
+                    {points.map((_, index) => <option key={index} value={index}>Ponto {index + 1}</option>)}
+                  </select>
+                </label>
+                <label style={{ flex: 1, color: palette.muted, fontSize: 12, fontWeight: 700 }}>
+                  Ponto final
+                  <select style={{ ...field, marginTop: 5 }} value={endPoint} onChange={(event) => { setEndPoint(Number(event.target.value)); setMeasurementReady(false); }}>
+                    {points.map((_, index) => <option key={index} value={index}>Ponto {index + 1}</option>)}
+                  </select>
+                </label>
+              </div>
+              <label style={{ display: "block", marginTop: 12, color: palette.muted, fontSize: 12, fontWeight: 700 }}>
+                Distância real entre os pontos (m)
+                <input style={{ ...field, display: "block", boxSizing: "border-box", marginTop: 5 }} type="number" min=".1" step=".01" value={knownMeters} onChange={(event) => { setKnownMeters(event.target.value); setMeasurementReady(false); }} />
+              </label>
+              <button style={{ ...button, width: "100%", marginTop: 12, background: "#2e755b" }} onClick={calibrate}>
+                Calcular estimativa
+              </button>
+              {measurementReady && (
+                <div style={{ marginTop: 12 }}>
+                  {points.length >= 3 && <p style={{ margin: "0 0 8px", color: palette.deep, fontWeight: 900, fontSize: 20 }}>Área aproximada: {area.toFixed(2)} m²*</p>}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {sideLengths.map((length, index) => (
+                      <span key={index} style={{ padding: "6px 8px", borderRadius: 7, background: palette.paper, color: palette.muted, fontSize: 11 }}>
+                        Segmento {index + 1}: <b>{length.toFixed(2)} m*</b>
+                      </span>
+                    ))}
+                  </div>
+                  {photo && <button style={{ ...button, width: "100%", marginTop: 10 }} onClick={saveMarkedPhoto}>Salvar/compartilhar foto marcada</button>}
+                </div>
+              )}
+              <p style={{ margin: "12px 0 0", padding: 10, borderRadius: 8, background: "#f7e3cc", color: "#68441d", fontSize: 12, lineHeight: 1.5 }}>
+                <b>Precisão:</b> foto comum não mede profundidade nem corrige perspectiva. Não use esta estimativa em laudo. Medição 3D real no iPhone exige integração nativa com ARKit/RoomPlan e hardware compatível.
+              </p>
+            </section>
+
+            <section style={card}>
+              <h2 style={{ margin: "0 0 5px", color: palette.deep, fontSize: 18 }}>Portas e janelas</h2>
+              <p style={{ margin: 0, color: palette.muted, fontSize: 12, lineHeight: 1.5 }}>
+                A IA pode reconhecer elementos visíveis na foto. Ela não calcula medidas; confira o resultado no local.
+              </p>
+              <button
+                style={{ ...button, width: "100%", marginTop: 12, opacity: analyzing || !photo ? 0.65 : 1 }}
+                disabled={analyzing || !photo}
+                onClick={analyzePhoto}
+              >
+                {analyzing ? "Analisando foto…" : "Analisar foto com IA"}
+              </button>
+              <p style={{ margin: "8px 0 0", color: palette.muted, fontSize: 11, lineHeight: 1.5 }}>
+                Ao tocar em analisar, a foto será enviada à API da OpenAI. A análise só funciona se a chave da API estiver configurada no servidor; o uso é cobrado pela API.
+              </p>
+              {analysis && (
+                <div style={{ marginTop: 12 }}>
+                  <p role="status" style={{ color: palette.deep, fontSize: 13 }}>{analysis.summary}</p>
+                  {analysis.openings.length === 0 ? (
+                    <p style={{ color: palette.muted, fontSize: 12 }}>Nenhuma porta ou janela identificável nesta foto.</p>
+                  ) : (
+                    <ul style={{ paddingLeft: 20, color: palette.muted, fontSize: 12, lineHeight: 1.6 }}>
+                      {analysis.openings.map((opening, index) => (
+                        <li key={index}>
+                          <b>{opening.kind[0].toUpperCase() + opening.kind.slice(1)}</b> · {opening.position} · confiança {opening.confidence}. {opening.description}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <p style={{ color: "#8b5a20", fontSize: 11 }}>Sugestão automática: confirme manualmente cada elemento.</p>
+                </div>
+              )}
+            </section>
+          </aside>
+        </div>
+
+        {(cameraError || notice) && (
+          <p role={cameraError ? "alert" : "status"} style={{ marginTop: 14, color: cameraError ? "#a34435" : palette.blue, fontSize: 13 }}>
+            {cameraError || notice}
+          </p>
+        )}
+        <p style={{ marginTop: 18, color: "#8b968f", fontSize: 11, lineHeight: 1.5 }}>
+          Foto e marcações ficam apenas nesta sessão do navegador. Não são adicionadas à vistoria nem enviadas à OpenAI sem você tocar em “Analisar foto com IA”.
+        </p>
       </div>
-      <p style={{ marginTop: 18, color: "#8b968f", fontSize: 11 }}>Laboratório isolado. Nenhuma captura é salva, anexada à vistoria ou exportada para um laudo.</p>
-    </div>
-  </main>;
+    </main>
+  );
 }
