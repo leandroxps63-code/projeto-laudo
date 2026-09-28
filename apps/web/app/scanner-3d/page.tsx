@@ -75,11 +75,57 @@ function cropToPhoto(image: HTMLImageElement | HTMLVideoElement) {
   return canvas.toDataURL("image/jpeg", 0.84);
 }
 
+function waitForFirstCameraFrame(video: HTMLVideoElement, timeoutMs = 8000) {
+  return new Promise<void>((resolve, reject) => {
+    let timeout: number;
+    const cleanup = () => {
+      window.clearTimeout(timeout);
+      video.removeEventListener("loadeddata", checkFrame);
+      video.removeEventListener("playing", checkFrame);
+      video.removeEventListener("error", handleError);
+    };
+    const checkFrame = () => {
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
+        cleanup();
+        resolve();
+      }
+    };
+    const handleError = () => {
+      cleanup();
+      reject(new Error("A câmera abriu, mas não entregou imagem. Use a câmera nativa do celular para tirar a foto."));
+    };
+
+    timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("A câmera abriu, mas não chegou nenhum quadro de vídeo. Use “Tirar ou escolher foto” para continuar."));
+    }, timeoutMs);
+    video.addEventListener("loadeddata", checkFrame);
+    video.addEventListener("playing", checkFrame);
+    video.addEventListener("error", handleError);
+    checkFrame();
+  });
+}
+
+function cameraFrameIsBlack(video: HTMLVideoElement) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 32;
+  canvas.height = 18;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) return false;
+  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+  for (let index = 0; index < pixels.length; index += 4) {
+    if (pixels[index] > 1 || pixels[index + 1] > 1 || pixels[index + 2] > 1) return false;
+  }
+  return true;
+}
+
 export default function Scanner3DTestPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraStarting, setCameraStarting] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const [notice, setNotice] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
@@ -128,6 +174,7 @@ export default function Scanner3DTestPage() {
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
     setCameraActive(false);
+    setCameraStarting(false);
   }
 
   async function startCamera() {
@@ -137,13 +184,16 @@ export default function Scanner3DTestPage() {
     setPoints([]);
     setAnalysis(null);
     setMeasurementReady(false);
+    setCameraStarting(true);
 
     if (!window.isSecureContext) {
+      setCameraStarting(false);
       setCameraError("A câmera precisa de uma página HTTPS. Abra o endereço publicado do Projeto Laudo.");
       return;
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraStarting(false);
       setCameraError(
         "Este navegador não liberou acesso direto à câmera. Use “Tirar ou escolher foto” ou abra o site no Safari/Chrome.",
       );
@@ -166,14 +216,22 @@ export default function Scanner3DTestPage() {
       if (!videoRef.current) throw new Error("O vídeo ainda não está pronto. Tente novamente.");
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
+      await waitForFirstCameraFrame(videoRef.current);
+      if (cameraFrameIsBlack(videoRef.current)) {
+        throw new Error("A câmera abriu, mas a imagem recebida está preta. Tente a câmera nativa do celular ou verifique se outro app está usando a câmera.");
+      }
       setCameraActive(true);
+      setCameraStarting(false);
     } catch (error) {
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
       setCameraActive(false);
+      setCameraStarting(false);
 
       const name = error instanceof DOMException ? error.name : "";
-      if (name === "NotAllowedError" || name === "SecurityError") {
+      if (error instanceof Error && error.message.startsWith("A câmera abriu,")) {
+        setCameraError(error.message);
+      } else if (name === "NotAllowedError" || name === "SecurityError") {
         setCameraError("A permissão da câmera foi negada. Libere a câmera para este site nas configurações do navegador.");
       } else if (name === "NotFoundError" || name === "OverconstrainedError") {
         setCameraError("Não encontrei uma câmera traseira disponível neste dispositivo.");
